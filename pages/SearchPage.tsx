@@ -88,7 +88,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
       <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
 
       <div className="px-1 flex items-baseline justify-between mb-2">
-        <h2 className="text-base md:text-lg font-[1000] text-emerald-400 tracking-tighter uppercase">Transit Search</h2>
+        <h2 className="text-base md:text-lg font-[1000] text-amber-400 tracking-tighter uppercase">Transit Search</h2>
       </div>
 
       <div className="relative" ref={containerRef}>
