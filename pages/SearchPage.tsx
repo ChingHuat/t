@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Heart, Loader2, Info, MessageSquare, AlertTriangle, RefreshCw, WifiOff, History, Sparkles } from 'lucide-react';
+import { Search, Heart, Loader2, AlertTriangle, RefreshCw, WifiOff, History } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
-import { getSmartTransitAdvice } from '../services/geminiService';
 import { BusStopArrivalResponse, FavoriteBusStop, WeatherResponse, FavoriteService } from '../types';
 import ServiceRow from '../components/ServiceRow';
 import ActiveAlertsBanner from '../components/ActiveAlertsBanner';
@@ -33,8 +32,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isNetworkError, setIsNetworkError] = useState(false);
-  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
   
   const [recents, setRecents] = useState<string[]>(() => {
     const saved = localStorage.getItem('sg_bus_recents');
@@ -54,7 +51,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
     setIsNetworkError(false);
     setData(null);
     setWeather(null);
-    setAiAdvice(null);
 
     try {
       const arrivalRes = await fetchBusArrival(q);
@@ -78,20 +74,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
   };
 
   const isFavorited = data ? favorites.some(f => f.code === data.busStopCode) : false;
-
-  const getAIHelp = async () => {
-    if (!data) return;
-    setAiLoading(true);
-    try {
-      const context = `Bus Stop ${data.busStopName} (${data.busStopCode}). Services: ${data.services.map(s => `${s.ServiceNo} (ETA: ${s.eta}m)`).join(', ')}. Weather: ${weather?.level || 'Unknown'}`;
-      const advice = await getSmartTransitAdvice("Give me a smart summary of the best bus to take now and any weather concerns.", context);
-      setAiAdvice(advice || "I'm having trouble thinking right now.");
-    } catch (e) {
-      setAiAdvice("AI advice unavailable. Please try again later.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -195,27 +177,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
                 <Heart className={`w-6 h-6 ${isFavorited ? 'fill-current' : ''}`} />
               </button>
             </div>
-            
-            <div className="mt-6">
-               <button 
-                onClick={getAIHelp}
-                disabled={aiLoading}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 rounded-2xl font-black text-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-xl"
-               >
-                 {aiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                 Gemini Smart Insight
-               </button>
-            </div>
           </div>
-
-          {aiAdvice && (
-            <div className="p-5 bg-gradient-to-br from-emerald-500/5 to-blue-500/5 dark:from-emerald-500/10 dark:to-blue-500/10 border border-emerald-500/20 dark:border-emerald-500/30 rounded-3xl shadow-sm text-sm text-slate-700 dark:text-slate-300 leading-relaxed animate-in zoom-in-95 duration-300">
-              <div className="font-black text-emerald-600 dark:text-emerald-400 text-[10px] uppercase mb-2 flex items-center gap-1.5 tracking-widest">
-                <Sparkles className="w-3.5 h-3.5" /> AI Transit Advisor
-              </div>
-              <p className="italic font-medium">{aiAdvice}</p>
-            </div>
-          )}
 
           <div className="grid gap-4">
             {data.services.length > 0 ? (
