@@ -1,3 +1,4 @@
+
 import { BusStopArrivalResponse, WeatherResponse, AlertRequest, CancelAlertRequest, AlertResponse, AlertStatusResponse } from '../types';
 
 /**
@@ -52,6 +53,15 @@ export const fetchBusArrival = async (busStopCode: string): Promise<BusStopArriv
     }
     throw err;
   }
+};
+
+/**
+ * GET /bus-stops/search?q={query}
+ */
+export const searchBusStops = async (query: string) => {
+  const response = await secureFetch(`${BASE_URL}/bus-stops/search?q=${encodeURIComponent(query)}`);
+  if (!response.ok) return { results: [] };
+  return response.json();
 };
 
 /**
