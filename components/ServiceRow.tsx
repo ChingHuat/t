@@ -24,32 +24,35 @@ const getMinutesFromNow = (arrivalInfo: BusArrivalInfo): number | 'ARR' | null =
   return diff <= 0 ? 'ARR' : diff;
 };
 
+const getTimestamp = (arrivalInfo: BusArrivalInfo): string => {
+  if (!arrivalInfo?.EstimatedArrival) return '--:--';
+  const arrival = new Date(arrivalInfo.EstimatedArrival);
+  if (isNaN(arrival.getTime())) return '--:--';
+  const hh = arrival.getHours().toString().padStart(2, '0');
+  const mm = arrival.getMinutes().toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
 const getLoadInfo = (load?: string) => {
   switch (load) {
-    case 'SEA': return { text: 'Seats', emoji: '', color: 'text-emerald-600 dark:text-emerald-400' };
-    case 'SDA': return { text: 'Stand', emoji: '', color: 'text-amber-600 dark:text-amber-400' };
-    case 'LSD': return { text: 'Full', emoji: '', color: 'text-red-600 dark:text-red-400' };
+    case 'SEA': return { text: 'SEATS', color: 'text-cyan-400' };
+    case 'SDA': return { text: 'STANDING', color: 'text-amber-400' };
+    case 'LSD': return { text: 'FULL', color: 'text-red-400' };
     default: return null;
   }
 };
 
 const getStatusInfo = (s: BusService) => {
   if (s.stability === 'UNSTABLE' || s.confidence === 'LOW') {
-    return { text: 'Unstable', emoji: '⚠️', color: 'text-red-600 dark:text-red-400' };
+    return { text: 'UNSTABLE', color: 'text-red-400' };
   }
-  if (s.drift === 'UP') {
-    return { text: 'Slower', emoji: '', color: 'text-amber-600 dark:text-amber-400' };
-  }
-  if (s.drift === 'DOWN') {
-    return { text: 'Faster', emoji: '', color: 'text-emerald-600 dark:text-emerald-400' };
-  }
-  return { text: 'Stable', emoji: '', color: 'text-slate-500 dark:text-slate-400' };
+  return { text: 'STABLE', color: 'text-emerald-400' };
 };
 
 const getSecondaryEtaColor = (val: number | 'ARR' | null) => {
-  if (val === 'ARR' || (typeof val === 'number' && val <= 3)) return 'text-emerald-500/80 dark:text-emerald-400/80';
-  if (typeof val === 'number' && val <= 10) return 'text-amber-500/70 dark:text-amber-400/70';
-  return 'text-slate-400/60 dark:text-slate-500/60';
+  if (val === 'ARR' || (typeof val === 'number' && val <= 3)) return 'text-emerald-400';
+  if (typeof val === 'number' && val <= 10) return 'text-amber-400';
+  return 'text-slate-500';
 };
 
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
@@ -58,8 +61,14 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   
   const rawEta = service.eta;
   const eta1 = (rawEta === 'Arr' || rawEta === 0) ? 'ARR' : rawEta;
-  const eta2 = getMinutesFromNow(service.NextBus2);
-  const eta3 = getMinutesFromNow(service.NextBus3);
+  
+  // Calculate relative minutes for color logic
+  const min2 = getMinutesFromNow(service.NextBus2);
+  const min3 = getMinutesFromNow(service.NextBus3);
+  
+  // Get timestamps for display
+  const ts2 = getTimestamp(service.NextBus2);
+  const ts3 = getTimestamp(service.NextBus3);
 
   const loadInfo = getLoadInfo(service.NextBus.Load);
   const statusInfo = getStatusInfo(service);
@@ -98,7 +107,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
       onAlertChange(res.alertId);
     } catch (err) {
       console.error('Failed to register alert', err);
-      alert("Failed to register alert. Ensure you have started the bot.");
+      alert("Failed to register alert.");
     } finally {
       setLoading(false);
     }
@@ -106,82 +115,104 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
 
   const getEtaColorClass = () => {
     if (eta1 === 'ARR' || (typeof eta1 === 'number' && eta1 <= 1)) {
-      return 'text-emerald-600 dark:text-emerald-400';
+      return 'text-emerald-400';
     }
     if (typeof eta1 === 'number' && eta1 <= 5) {
-      return 'text-amber-500 dark:text-amber-400';
+      return 'text-amber-400';
     }
-    return 'text-slate-900 dark:text-slate-100';
+    return 'text-white';
   };
 
   return (
     <div className="relative w-full">
-      <div className="flex flex-row items-center p-2.5 md:p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700">
+      <div className="flex flex-row items-center p-3 bg-slate-900 border border-slate-800 rounded-xl shadow-lg transition-all duration-200 hover:border-slate-700">
         
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1.5 md:mb-1">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[1.4rem] md:text-xl font-[900] bg-slate-900 dark:bg-slate-800 text-white px-1.5 py-0.5 rounded leading-none tracking-tight">
-                {service.ServiceNo}
+        {/* Left Section: Primary ETA (20% smaller than previous 6xl) */}
+        <div className="flex flex-col items-center justify-center min-w-[5rem] shrink-0">
+          <div className={`text-5xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()}`}>
+            <span>{eta1}</span>
+            {typeof eta1 === 'number' && (
+              <span className="text-[12px] font-black uppercase text-slate-500 tracking-tighter ml-1">M</span>
+            )}
+          </div>
+          {subtitle && (
+            <span className="text-[8px] font-black text-slate-600 uppercase truncate mt-2 tracking-widest text-center w-full max-w-[4.5rem]">
+              {subtitle}
+            </span>
+          )}
+        </div>
+
+        {/* Center Section: Hierarchical Information with Bus Number and Status */}
+        <div className="flex-1 flex flex-col justify-center px-4 min-w-0 border-l border-slate-800/50">
+          
+          {/* Top Row: Bus Service No + Status indicators */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Bus Service Number: Enhanced 10% for prominence */}
+            <div className="text-4xl font-[1000] text-white leading-none tracking-tight">
+              {service.ServiceNo}
+            </div>
+
+            {/* Status Labels stacked together with color */}
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <span className={`text-[9px] font-[1000] uppercase tracking-wider ${statusInfo.color}`}>
+                {statusInfo.text}
               </span>
-              {subtitle && (
-                <span className="text-[10px] font-bold text-slate-400 uppercase truncate">
-                  {subtitle}
+              {loadInfo && (
+                <span className={`text-[9px] font-[1000] uppercase tracking-wider ${loadInfo.color}`}>
+                  {loadInfo.text}
                 </span>
               )}
             </div>
-            <div className={`text-[1.8rem] md:text-2xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline gap-0.5 ${getEtaColorClass()}`}>
-              <span>{eta1}</span>
-              {typeof eta1 === 'number' && <span className="text-[10px] md:text-[11px] font-black uppercase text-slate-400/70 tracking-tighter ml-0.5">M</span>}
-            </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 overflow-hidden border-t border-slate-50 dark:border-slate-800/50 pt-1.5 md:pt-1">
-            <div className="flex items-center gap-3">
-              {loadInfo && (
-                <div className="flex items-center gap-0.5 whitespace-nowrap">
-                  <span className={`text-[11px] font-[900] uppercase tracking-tight ${loadInfo.color}`}>{loadInfo.text}</span>
-                </div>
-              )}
-              {statusInfo && (
-                <div className="flex items-center gap-0.5 whitespace-nowrap">
-                  <span className={`text-[11px] font-[900] uppercase tracking-tight ${statusInfo.color}`}>{statusInfo.text}</span>
-                  {statusInfo.emoji && <span className="text-[12px] leading-none">{statusInfo.emoji}</span>}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className={`text-[9px] md:text-[10px] font-black tabular-nums transition-colors uppercase ${getSecondaryEtaColor(eta2)}`}>
-                next2: {eta2 ?? '--'}m
-              </span>
-              <span className={`text-[9px] md:text-[10px] font-black tabular-nums transition-colors uppercase ${getSecondaryEtaColor(eta3)}`}>
-                next3: {eta3 ?? '--'}m
-              </span>
-            </div>
+          {/* Bottom Row: Labeled and Colored Next Bus info using Timestamps */}
+          <div className="flex items-center gap-4 mt-2.5 pt-2 border-t border-slate-800/50">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              Next <span className={`font-black ${getSecondaryEtaColor(min2)}`}>{ts2}</span>
+            </span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              Next 2 <span className={`font-black ${getSecondaryEtaColor(min3)}`}>{ts3}</span>
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-row items-center gap-1 ml-3 pl-2 border-l border-slate-100 dark:border-slate-800">
-          <button onClick={handleToggleAlert} disabled={loading} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${alertId ? 'bg-emerald-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100'}`}>
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : alertId ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+        {/* Right Section: Action icons vertically aligned */}
+        <div className="flex flex-col gap-2 ml-1 pl-3 border-l border-slate-800 shrink-0">
+          <button 
+            onClick={handleToggleAlert} 
+            disabled={loading} 
+            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 ${alertId ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500 hover:text-slate-300 border border-slate-700'}`}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : alertId ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
           </button>
+          
           {onPinToggle && (
-            <button onClick={(e) => { e.stopPropagation(); onPinToggle(); }} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${isPinned ? 'bg-emerald-500 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100'}`}>
-              {isPinned ? <Pin className="w-3.5 h-3.5 fill-current" /> : <PinOff className="w-3.5 h-3.5" />}
+            <button 
+              onClick={(e) => { e.stopPropagation(); onPinToggle(); }} 
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 ${isPinned ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500 hover:text-slate-300 border border-slate-700'}`}
+            >
+              {isPinned ? <Pin className="w-4 h-4 fill-current" /> : <PinOff className="w-4 h-4" />}
             </button>
           )}
         </div>
       </div>
 
+      {/* Threshold Selector Overlay */}
       {showThresholds && !alertId && (
-        <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-center justify-center gap-1.5 rounded-lg animate-in fade-in duration-150">
-          <span className="text-[9px] font-black text-slate-500 uppercase mr-1">Notify:</span>
+        <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center gap-2 rounded-xl animate-in fade-in duration-150 border border-emerald-500/30">
+          <span className="text-[10px] font-black text-slate-500 uppercase mr-1 tracking-widest">NOTIFY AT:</span>
           {[3, 5, 8, 10].map(m => (
-            <button key={m} onClick={() => handleRegister(m)} className="px-2 py-1 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded text-[10px] font-black hover:bg-emerald-500 hover:text-white">
+            <button 
+              key={m} 
+              onClick={() => handleRegister(m)} 
+              className="w-10 h-10 bg-slate-800 text-white border border-slate-700 rounded-xl text-[10px] font-[1000] hover:bg-emerald-500 hover:border-emerald-400 transition-colors"
+            >
               {m}m
             </button>
           ))}
-          <button onClick={() => setShowThresholds(false)} className="ml-1 p-1 text-slate-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+          <button onClick={() => setShowThresholds(false)} className="ml-1 p-2 text-slate-500 hover:text-red-500">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

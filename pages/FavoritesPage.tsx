@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-// Added Bus to lucide-react imports to fix missing icon error
 import { Heart, Loader2, Pin, Star, RefreshCw, Bus } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
 import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, WeatherResponse } from '../types';
@@ -72,7 +71,7 @@ const FavoriteStopCard: React.FC<{
             </span>
             {weather && <WeatherIndicator weather={weather} />}
           </div>
-          <h3 className="font-[1000] text-[12px] text-slate-100 truncate uppercase tracking-tighter leading-none">
+          <h3 className="font-[1000] text-[12px] text-slate-100 uppercase tracking-tighter leading-none">
             {stop.name}
           </h3>
           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mt-1 leading-none">
@@ -124,7 +123,6 @@ const PinnedServicesSection: React.FC<{
   const [loading, setLoading] = useState(true);
 
   const fetchAllData = async () => {
-    // FIX: Explicitly typing 'codes' as string[] ensures 'code' is not inferred as 'unknown', fixing indexing and parameter errors.
     const codes: string[] = Array.from(new Set(pinnedServices.map(p => p.busStopCode)));
     if (codes.length === 0) { setLoading(false); return; }
     const results: Record<string, BusStopArrivalResponse> = {};
@@ -144,27 +142,39 @@ const PinnedServicesSection: React.FC<{
   if (pinnedServices.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex items-center gap-2 px-1">
         <Pin className="w-3.5 h-3.5 text-emerald-500" />
         <h3 className="text-[10px] font-[1000] text-slate-100 uppercase tracking-widest">Priority Fleet</h3>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-5">
         {pinnedServices.map((p) => {
           const s = liveData[p.busStopCode]?.services.find(s => s.ServiceNo === p.serviceNo);
-          return s ? (
-            <ServiceRow 
-              key={`${p.busStopCode}-${p.serviceNo}`}
-              service={s}
-              busStopCode={p.busStopCode}
-              telegramId={telegramId}
-              alertId={activeAlerts[`${p.busStopCode}-${p.serviceNo}`]}
-              onAlertChange={(aid) => onAlertChange(p.busStopCode, p.serviceNo, aid)}
-              isPinned={true}
-              onPinToggle={() => onPinToggle(p)}
-              subtitle={p.busStopName}
-            />
-          ) : <div key={`${p.busStopCode}-${p.serviceNo}`} className="h-[64px] bg-slate-800/50 rounded-xl animate-pulse" />;
+          return (
+            <div key={`${p.busStopCode}-${p.serviceNo}`} className="flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 px-1 group">
+                <div className="w-1 h-3 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+                <span className="text-[9px] font-[1000] text-slate-400 uppercase tracking-tighter group-hover:text-emerald-400 transition-colors truncate max-w-full">
+                  {p.busStopName} <span className="text-slate-600 font-bold ml-1">#{p.busStopCode}</span>
+                </span>
+              </div>
+              {s ? (
+                <ServiceRow 
+                  service={s}
+                  busStopCode={p.busStopCode}
+                  telegramId={telegramId}
+                  alertId={activeAlerts[`${p.busStopCode}-${p.serviceNo}`]}
+                  onAlertChange={(aid) => onAlertChange(p.busStopCode, p.serviceNo, aid)}
+                  isPinned={true}
+                  onPinToggle={() => onPinToggle(p)}
+                />
+              ) : (
+                <div className="h-[80px] bg-slate-900/50 border border-slate-800/50 rounded-xl animate-pulse flex items-center justify-center">
+                   <Loader2 className="w-4 h-4 text-slate-700 animate-spin" />
+                </div>
+              )}
+            </div>
+          );
         })}
       </div>
     </div>
@@ -190,7 +200,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
 
       {favorites.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1 pt-4 border-t border-slate-800">
+          <div className="flex items-center gap-2 px-1 pt-6 border-t border-slate-800">
             <Star className="w-3.5 h-3.5 text-amber-500" />
             <h3 className="text-[10px] font-[1000] text-slate-100 uppercase tracking-widest">Saved Terminals</h3>
           </div>
