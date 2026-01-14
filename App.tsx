@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Search, Heart, RefreshCw, Settings, Sun, Moon, Activity } from 'lucide-react';
+import { Search, Heart, RefreshCw, Settings, Sun, Moon, Activity, Bus } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -8,7 +9,6 @@ import { FavoriteBusStop, FavoriteService } from './types';
 import { fetchAlertStatus, checkApiStatus } from './services/busApi';
 
 const App: React.FC = () => {
-  // Initialization from LocalStorage
   const [favorites, setFavorites] = useState<FavoriteBusStop[]>(() => {
     const saved = localStorage.getItem('sg_bus_favorites');
     return saved ? JSON.parse(saved) : [];
@@ -37,7 +37,6 @@ const App: React.FC = () => {
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Health Monitoring: Poll /health every 30 seconds
   useEffect(() => {
     const monitorHealth = async () => {
       const isOnline = await checkApiStatus();
@@ -48,7 +47,6 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Persistence Effects
   useEffect(() => {
     localStorage.setItem('sg_bus_favorites', JSON.stringify(favorites));
   }, [favorites]);
@@ -145,98 +143,95 @@ const App: React.FC = () => {
     setRefreshKey(prev => prev + 1);
   };
 
+  const navClasses = ({ isActive }: { isActive: boolean }) => 
+    `flex md:flex-row flex-col items-center gap-2 p-3 md:px-6 md:py-4 rounded-2xl transition-all ${
+      isActive 
+        ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 font-bold' 
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+    }`;
+
   return (
     <MemoryRouter>
-      <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 transition-colors duration-300`}>
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <RefreshCw className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">SG Bus Pro</h1>
-              {/* Health Indicator Dot */}
-              <div className="flex items-center gap-1.5 ml-1">
-                <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${
-                  apiOnline === true ? 'bg-emerald-500 animate-pulse' : 
-                  apiOnline === false ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 
-                  'bg-slate-300 dark:bg-slate-700'
-                }`} />
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden sm:inline">
-                  {apiOnline === true ? 'Online' : apiOnline === false ? 'Offline' : '...'}
-                </span>
-              </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+        
+        {/* Responsive Sidebar Navigation (Desktop/Tablet) */}
+        <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50">
+          <div className="p-8 flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Bus className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black tracking-tight text-slate-800 dark:text-slate-100 leading-none">SG BUS</h1>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Arrival Pro</span>
             </div>
           </div>
 
+          <nav className="flex-1 px-4 space-y-2">
+            <NavLink to="/" className={navClasses}>
+              <Heart className="w-5 h-5" />
+              <span className="text-sm">Favorites</span>
+            </NavLink>
+            <NavLink to="/search" className={navClasses}>
+              <Search className="w-5 h-5" />
+              <span className="text-sm">Live Search</span>
+            </NavLink>
+            <NavLink to="/settings" className={navClasses}>
+              <Settings className="w-5 h-5" />
+              <span className="text-sm">Settings</span>
+            </NavLink>
+          </nav>
+
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between px-2">
+               <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${apiOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-[10px] font-black uppercase text-slate-400">System</span>
+               </div>
+               <button onClick={() => setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500">
+                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+               </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Top Mobile Header */}
+        <header className="md:hidden sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <Bus className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-md font-black tracking-tight text-slate-800 dark:text-slate-100 uppercase">SG Bus Pro</h1>
+            <div className={`w-2 h-2 rounded-full ml-1 ${apiOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+          </div>
           <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400"
-              title="Toggle Theme"
-            >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-            <button 
-              onClick={handleGlobalRefresh}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400"
-              title="Refresh App"
-            >
-              <RefreshCw className="w-5 h-5" />
-            </button>
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-500">{darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
+            <button onClick={handleGlobalRefresh} className="p-2 text-slate-500"><RefreshCw className="w-5 h-5" /></button>
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-6" key={refreshKey}>
+        {/* Main Content Area */}
+        <main className="flex-1 w-full max-w-7xl mx-auto md:px-8 px-4 py-6 md:py-12 pb-24 md:pb-12 overflow-y-auto" key={refreshKey}>
           <Routes>
-            <Route 
-              path="/" 
-              element={
-                <FavoritesPage 
-                  favorites={favorites} 
-                  pinnedServices={pinnedServices}
-                  toggleFavorite={toggleFavorite} 
-                  togglePinnedService={togglePinnedService}
-                  telegramId={telegramId}
-                  activeAlerts={activeAlerts}
-                  onAlertChange={updateAlert}
-                />
-              } 
-            />
-            <Route 
-              path="/search" 
-              element={
-                <SearchPage 
-                  favorites={favorites} 
-                  pinnedServices={pinnedServices}
-                  toggleFavorite={toggleFavorite} 
-                  togglePinnedService={togglePinnedService}
-                  telegramId={telegramId} 
-                  activeAlerts={activeAlerts}
-                  onAlertChange={updateAlert}
-                />
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={<SettingsPage telegramId={telegramId} onUpdateId={updateTelegramId} apiOnline={apiOnline} />} 
-            />
+            <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
+            <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
+            <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={updateTelegramId} apiOnline={apiOnline} />} />
           </Routes>
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 safe-bottom">
-          <div className="max-w-2xl mx-auto flex justify-around p-2">
-            <NavLink to="/" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
+        {/* Bottom Mobile Navigation */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 safe-bottom">
+          <div className="flex justify-around p-2">
+            <NavLink to="/" className={navClasses}>
               <Heart className="w-6 h-6" />
-              <span className="text-[10px] font-medium mt-1">Favorites</span>
+              <span className="text-[10px] font-bold uppercase mt-1">Home</span>
             </NavLink>
-            <NavLink to="/search" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
+            <NavLink to="/search" className={navClasses}>
               <Search className="w-6 h-6" />
-              <span className="text-[10px] font-medium mt-1">Search</span>
+              <span className="text-[10px] font-bold uppercase mt-1">Search</span>
             </NavLink>
-            <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
+            <NavLink to="/settings" className={navClasses}>
               <Settings className="w-6 h-6" />
-              <span className="text-[10px] font-medium mt-1">Settings</span>
+              <span className="text-[10px] font-bold uppercase mt-1">Config</span>
             </NavLink>
           </div>
         </nav>
