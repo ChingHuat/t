@@ -132,5 +132,5 @@ export const checkApiStatus = async (): Promise<boolean> => {
  * External links for the Telegram bot.
  */
 export const getTelegramBotLink = (busStop: string, service: string) => {
-  return `https://t.me/SGBusProBot?start=alert_${busStop}_${service}`;
+  return `https://t.me/TransitAI_bot?start=alert_${busStop}_${service}`;
 };

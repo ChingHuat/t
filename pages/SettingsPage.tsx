@@ -117,10 +117,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button 
                   className="w-full py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
-                  onClick={() => window.open(`https://t.me/SGBusProBot?start=setup`, '_blank')}
+                  onClick={() => window.open(`https://t.me/TransitAI_bot?start=setup`, '_blank')}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  Get your ID from @SGBusProBot
+                  Get your ID from @TransitAI_bot
                 </button>
               </div>
             </div>
@@ -136,7 +136,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
             </div>
             <ul className="space-y-4">
               {[
-                { id: '1', title: 'Find your ID', text: 'Message /id to @SGBusProBot on Telegram to get your unique 9-10 digit number.' },
+                { id: '1', title: 'Find your ID', text: 'Message /id to @TransitAI_bot on Telegram to get your unique 9-10 digit number.' },
                 { id: '2', title: 'Why numeric?', text: 'Handles (@user) are private and cannot be used by the automated delivery system.' },
                 { id: '3', title: 'Missed Alerts', text: 'Ensure you have used /start with the bot first to authorize messages.' }
               ].map(item => (
