@@ -1,10 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, Loader2, Pin, Star, RefreshCw } from 'lucide-react';
-import { fetchBusArrival } from '../services/busApi';
-import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService } from '../types';
+// Added Bus to lucide-react imports to fix missing icon error
+import { Heart, Loader2, Pin, Star, RefreshCw, Bus } from 'lucide-react';
+import { fetchBusArrival, fetchWeather } from '../services/busApi';
+import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, WeatherResponse } from '../types';
 import ServiceRow from '../components/ServiceRow';
 import ActiveAlertsBanner from '../components/ActiveAlertsBanner';
+
+const WeatherIndicator: React.FC<{ weather: WeatherResponse }> = ({ weather }) => {
+  const isRaining = weather.rain_mm > 0 || weather.level !== 'NONE';
+  return (
+    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${isRaining ? 'bg-blue-900/40 text-blue-400 border border-blue-500/20' : 'bg-orange-900/40 text-orange-400 border border-orange-500/20'}`}>
+      {isRaining ? '🌧️ RAIN' : '☀️ CLEAR'}
+    </div>
+  );
+};
 
 interface FavoritesPageProps {
   favorites: FavoriteBusStop[];
@@ -26,6 +36,7 @@ const FavoriteStopCard: React.FC<{
   onPinToggle: (pinned: FavoriteService) => void;
 }> = ({ stop, onRemove, telegramId, activeAlerts, onAlertChange, pinnedServices, onPinToggle }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
+  const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,8 +44,12 @@ const FavoriteStopCard: React.FC<{
     if (isManual) setRefreshing(true);
     else if (!data) setLoading(true);
     try {
-      const res = await fetchBusArrival(stop.code);
-      setData(res);
+      const [arrivalRes, weatherRes] = await Promise.allSettled([
+        fetchBusArrival(stop.code),
+        fetchWeather(stop.code)
+      ]);
+      if (arrivalRes.status === 'fulfilled') setData(arrivalRes.value);
+      if (weatherRes.status === 'fulfilled') setWeather(weatherRes.value);
     } catch {} finally {
       setLoading(false);
       setRefreshing(false);
@@ -48,21 +63,37 @@ const FavoriteStopCard: React.FC<{
   }, [stop.code]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-      <div className="px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/40 dark:bg-slate-800/20">
+    <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-lg overflow-hidden flex flex-col">
+      <div className="px-3 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-800/20">
         <div className="min-w-0">
-          <h3 className="font-black text-[11px] text-slate-900 dark:text-slate-100 truncate uppercase tracking-tight">{stop.name}</h3>
-          <p className="text-[8px] font-bold text-slate-400 uppercase leading-none">{stop.code} • {stop.road}</p>
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-[9px] font-[1000] bg-slate-800 text-white px-1.5 rounded uppercase tracking-tighter">
+              {stop.code}
+            </span>
+            {weather && <WeatherIndicator weather={weather} />}
+          </div>
+          <h3 className="font-[1000] text-[12px] text-slate-100 truncate uppercase tracking-tighter leading-none">
+            {stop.name}
+          </h3>
+          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mt-1 leading-none">
+            {stop.road}
+          </p>
         </div>
-        <div className="flex items-center gap-1">
-           <button onClick={() => loadData(true)} className={`p-1 text-slate-400 transition-colors ${refreshing ? 'animate-spin text-emerald-500' : ''}`}><RefreshCw className="w-3 h-3" /></button>
-           <button onClick={onRemove} className="p-1 text-red-500 hover:scale-105"><Heart className="w-3 h-3 fill-current" /></button>
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+           <button onClick={() => loadData(true)} className={`p-2 text-slate-400 transition-colors rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 ${refreshing ? 'animate-spin text-emerald-400 border-emerald-400' : ''}`}>
+             <RefreshCw className="w-3.5 h-3.5" />
+           </button>
+           <button onClick={onRemove} className="p-2 text-red-500 hover:scale-105 rounded-lg bg-slate-800 border border-slate-700 hover:bg-red-900/20 transition-all">
+             <Heart className="w-3.5 h-3.5 fill-current" />
+           </button>
         </div>
       </div>
       
-      <div className="p-1.5 flex flex-col gap-1">
+      <div className="p-1.5 flex flex-col gap-1.5">
         {loading && !data ? (
-          <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 text-emerald-500 animate-spin" /></div>
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+          </div>
         ) : (
           data?.services.map(s => (
             <ServiceRow 
@@ -96,7 +127,7 @@ const PinnedServicesSection: React.FC<{
     const codes = Array.from(new Set(pinnedServices.map(p => p.busStopCode)));
     if (codes.length === 0) { setLoading(false); return; }
     const results: Record<string, BusStopArrivalResponse> = {};
-    await Promise.all(codes.map(async (code) => {
+    await Promise.allSettled(codes.map(async (code) => {
       try { results[code] = await fetchBusArrival(code); } catch {}
     }));
     setLiveData(results);
@@ -113,11 +144,11 @@ const PinnedServicesSection: React.FC<{
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1.5 px-1">
+      <div className="flex items-center gap-2 px-1">
         <Pin className="w-3.5 h-3.5 text-emerald-500" />
-        <h3 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Pinboard</h3>
+        <h3 className="text-[10px] font-[1000] text-slate-100 uppercase tracking-widest">Priority Fleet</h3>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {pinnedServices.map((p) => {
           const s = liveData[p.busStopCode]?.services.find(s => s.ServiceNo === p.serviceNo);
           return s ? (
@@ -132,7 +163,7 @@ const PinnedServicesSection: React.FC<{
               onPinToggle={() => onPinToggle(p)}
               subtitle={p.busStopName}
             />
-          ) : <div key={`${p.busStopCode}-${p.serviceNo}`} className="h-[52px] bg-slate-50 dark:bg-slate-800 rounded-lg animate-pulse" />;
+          ) : <div key={`${p.busStopCode}-${p.serviceNo}`} className="h-[64px] bg-slate-800/50 rounded-xl animate-pulse" />;
         })}
       </div>
     </div>
@@ -141,11 +172,11 @@ const PinnedServicesSection: React.FC<{
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices, toggleFavorite, togglePinnedService, telegramId, activeAlerts, onAlertChange }) => {
   return (
-    <div className="space-y-4 animate-in fade-in duration-300 max-w-4xl mx-auto">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300 max-w-4xl mx-auto">
       <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
       
-      <div className="px-1 flex items-baseline justify-between">
-        <h2 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight uppercase">Saved Station Hub</h2>
+      <div className="px-1 flex items-baseline justify-between mb-2">
+        <h2 className="text-base md:text-lg font-[1000] text-amber-400 tracking-tighter uppercase">Departure Monitor</h2>
       </div>
 
       <PinnedServicesSection 
@@ -157,12 +188,12 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
       />
 
       {favorites.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 px-1 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1 pt-4 border-t border-slate-800">
             <Star className="w-3.5 h-3.5 text-amber-500" />
-            <h3 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Terminal List</h3>
+            <h3 className="text-[10px] font-[1000] text-slate-100 uppercase tracking-widest">Saved Terminals</h3>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-5">
             {favorites.map((stop) => (
               <FavoriteStopCard 
                 key={stop.code} 
@@ -176,6 +207,15 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
               />
             ))}
           </div>
+        </div>
+      )}
+      
+      {favorites.length === 0 && pinnedServices.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-50">
+          <Bus className="w-12 h-12 text-slate-700" />
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+            Monitor is Idle<br/>Search and star bus stops to begin
+          </p>
         </div>
       )}
     </div>

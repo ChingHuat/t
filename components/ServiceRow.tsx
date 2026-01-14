@@ -38,12 +38,18 @@ const getStatusInfo = (s: BusService) => {
     return { text: 'Unstable', emoji: '⚠️', color: 'text-red-600 dark:text-red-400' };
   }
   if (s.drift === 'UP') {
-    return { text: 'Slower', emoji: '⬆️', color: 'text-amber-600 dark:text-amber-400' };
+    return { text: 'Slower', emoji: '', color: 'text-amber-600 dark:text-amber-400' };
   }
   if (s.drift === 'DOWN') {
     return { text: 'Faster', emoji: '', color: 'text-emerald-600 dark:text-emerald-400' };
   }
   return { text: 'Stable', emoji: '', color: 'text-slate-500 dark:text-slate-400' };
+};
+
+const getSecondaryEtaColor = (val: number | 'ARR' | null) => {
+  if (val === 'ARR' || (typeof val === 'number' && val <= 3)) return 'text-emerald-500/80 dark:text-emerald-400/80';
+  if (typeof val === 'number' && val <= 10) return 'text-amber-500/70 dark:text-amber-400/70';
+  return 'text-slate-400/60 dark:text-slate-500/60';
 };
 
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
@@ -58,6 +64,48 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const loadInfo = getLoadInfo(service.NextBus.Load);
   const statusInfo = getStatusInfo(service);
 
+  // Added handleToggleAlert to handle alert registration and cancellation
+  const handleToggleAlert = async () => {
+    if (alertId) {
+      setLoading(true);
+      try {
+        await cancelAlert({ chatId: telegramId, alertId });
+        onAlertChange(null);
+      } catch (err) {
+        console.error('Failed to cancel alert', err);
+        alert("Could not cancel alert.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setShowThresholds(true);
+    }
+  };
+
+  // Added handleRegister to register a new alert with selected threshold
+  const handleRegister = async (threshold: number) => {
+    if (!telegramId) {
+      alert("Please configure your Telegram ID in Settings first.");
+      return;
+    }
+    setLoading(true);
+    setShowThresholds(false);
+    try {
+      const res = await registerAlert({
+        chatId: telegramId,
+        busStopCode,
+        serviceNo: service.ServiceNo,
+        threshold
+      });
+      onAlertChange(res.alertId);
+    } catch (err) {
+      console.error('Failed to register alert', err);
+      alert("Failed to register alert. Ensure you have started the bot.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getEtaColorClass = () => {
     if (eta1 === 'ARR' || (typeof eta1 === 'number' && eta1 <= 1)) {
       return 'text-emerald-600 dark:text-emerald-400';
@@ -68,42 +116,15 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     return 'text-slate-900 dark:text-slate-100';
   };
 
-  const handleToggleAlert = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!telegramId) return alert("Set Telegram ID in Settings.");
-    if (alertId) {
-      setLoading(true);
-      cancelAlert({ chatId: telegramId, alertId })
-        .then(() => onAlertChange(null))
-        .catch(() => alert("Failed to cancel alert."))
-        .finally(() => setLoading(false));
-    } else {
-      setShowThresholds(!showThresholds);
-    }
-  };
-
-  const handleRegister = async (threshold: number) => {
-    setLoading(true);
-    setShowThresholds(false);
-    try {
-      const res = await registerAlert({ chatId: telegramId, busStopCode, serviceNo: service.ServiceNo, threshold });
-      onAlertChange(res.alertId);
-    } catch {
-      alert("Failed to register alert.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="relative w-full">
-      <div className="flex flex-row items-center p-2 md:p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700">
+      <div className="flex flex-row items-center p-2.5 md:p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700">
         
         <div className="flex-1 min-w-0">
-          {/* Primary Row: Service No + ETA (Enhanced anchor and dominance) */}
-          <div className="flex items-center justify-between mb-1 md:mb-0.5">
+          {/* Primary Row: Service No + Dominant ETA */}
+          <div className="flex items-center justify-between mb-1.5 md:mb-1">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[1.35rem] md:text-xl font-[900] bg-slate-900 dark:bg-slate-800 text-white px-1.5 py-0.5 rounded leading-none tracking-tight">
+              <span className="text-[1.4rem] md:text-xl font-[900] bg-slate-900 dark:bg-slate-800 text-white px-1.5 py-0.5 rounded leading-none tracking-tight">
                 {service.ServiceNo}
               </span>
               {subtitle && (
@@ -112,31 +133,34 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
                 </span>
               )}
             </div>
-            <div className={`text-[1.75rem] md:text-2xl font-[950] tabular-nums leading-none tracking-tighter ${getEtaColorClass()}`}>
-              {eta1}
-              {typeof eta1 === 'number' && <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400/80 ml-0.5">min</span>}
+            <div className={`text-[1.8rem] md:text-2xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline gap-0.5 ${getEtaColorClass()}`}>
+              <span>{eta1}</span>
+              {typeof eta1 === 'number' && <span className="text-[10px] md:text-[11px] font-black uppercase text-slate-400/70 tracking-tighter">min</span>}
             </div>
           </div>
 
-          {/* Secondary Row: Indicators + Waves (Added breathing gap and demoted timing) */}
-          <div className="flex items-center justify-between gap-2 overflow-hidden pt-0.5 md:pt-0">
+          {/* Secondary Row: Status + Tertiary Timings */}
+          <div className="flex items-center justify-between gap-2 overflow-hidden border-t border-slate-50 dark:border-slate-800/50 pt-1.5 md:pt-1">
             <div className="flex items-center gap-3">
               {loadInfo && (
                 <div className="flex items-center gap-0.5 whitespace-nowrap">
-                  <span className={`text-[11px] font-black ${loadInfo.color}`}>{loadInfo.text}</span>
-                  {loadInfo.emoji && <span className="text-[12px] leading-none">{loadInfo.emoji}</span>}
+                  <span className={`text-[11px] font-[900] uppercase tracking-tight ${loadInfo.color}`}>{loadInfo.text}</span>
                 </div>
               )}
               {statusInfo && (
                 <div className="flex items-center gap-0.5 whitespace-nowrap">
-                  <span className={`text-[11px] font-black ${statusInfo.color}`}>{statusInfo.text}</span>
+                  <span className={`text-[11px] font-[900] uppercase tracking-tight ${statusInfo.color}`}>{statusInfo.text}</span>
                   {statusInfo.emoji && <span className="text-[12px] leading-none">{statusInfo.emoji}</span>}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0 opacity-60">
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 tabular-nums">+{eta2 ?? '--'}m</span>
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-300 dark:text-slate-600 tabular-nums">+{eta3 ?? '--'}m</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`text-[10px] md:text-[10px] font-black tabular-nums transition-colors ${getSecondaryEtaColor(eta2)}`}>
+                +{eta2 ?? '--'}m
+              </span>
+              <span className={`text-[10px] md:text-[10px] font-black tabular-nums transition-colors ${getSecondaryEtaColor(eta3)}`}>
+                +{eta3 ?? '--'}m
+              </span>
             </div>
           </div>
         </div>

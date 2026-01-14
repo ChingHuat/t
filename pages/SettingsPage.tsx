@@ -13,7 +13,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = () => {
-    // Basic cleanup: remove spaces or @ if user still types them
     const cleanValue = inputValue.replace(/[@\s]/g, '');
     onUpdateId(cleanValue);
     setInputValue(cleanValue);
@@ -26,137 +25,115 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
   const statusLabel = apiOnline === null ? 'checking' : apiOnline ? 'online' : 'offline';
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
-      {/* Header Section */}
-      <div className="md:mb-2">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">System Config</h2>
-        <p className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.2em] mt-0.5">Alerts & Connectivity</p>
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
+      <div className="px-1 mb-2">
+        <h2 className="text-xl md:text-2xl font-[1000] text-emerald-600 dark:text-emerald-400 tracking-tighter uppercase leading-none">Global Config</h2>
+        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1.5 block leading-none">Operational Status & Network Link</p>
       </div>
 
-      {/* Top Status Grid: Connectivity & Alert Status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className={`p-4 rounded-xl border flex items-center justify-between transition-colors h-full ${
-          statusLabel === 'online' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' : 
-          statusLabel === 'offline' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30' : 
-          'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800'
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className={`p-4 rounded-xl border flex items-center justify-between shadow-sm transition-all ${
+          statusLabel === 'online' ? 'bg-emerald-50/40 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800' : 
+          statusLabel === 'offline' ? 'bg-red-50/40 dark:bg-red-900/10 border-red-100 dark:border-red-800' : 
+          'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
         }`}>
           <div className="flex items-center gap-3">
-            <Activity className={`w-5 h-5 ${statusLabel === 'online' ? 'text-emerald-500' : statusLabel === 'offline' ? 'text-red-500' : 'text-slate-400 dark:text-slate-600'}`} />
+            <div className={`p-2 rounded-lg ${statusLabel === 'online' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
+              <Activity className="w-4 h-4" />
+            </div>
             <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Proxy Health</p>
-              <p className={`text-sm font-black ${statusLabel === 'online' ? 'text-emerald-700 dark:text-emerald-400' : statusLabel === 'offline' ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                {statusLabel === 'checking' ? 'Connecting...' : statusLabel === 'online' ? 'Systems Nominal' : 'API Link Down'}
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">System Proxy</p>
+              <p className={`text-sm font-[1000] uppercase tracking-tighter ${statusLabel === 'online' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                {statusLabel === 'checking' ? 'Establishing Link...' : statusLabel === 'online' ? 'Protocol Nominal' : 'Network Fault'}
               </p>
             </div>
           </div>
-          {statusLabel === 'online' ? <Wifi className="w-5 h-5 text-emerald-500" /> : statusLabel === 'offline' ? <WifiOff className="w-5 h-5 text-red-500" /> : <Loader2 className="w-5 h-5 text-slate-300 dark:text-slate-700 animate-spin" />}
+          {statusLabel === 'online' ? <Wifi className="w-5 h-5 text-emerald-500 animate-pulse" /> : <WifiOff className="w-5 h-5 text-red-500" />}
         </div>
 
-        <div className={`p-4 rounded-xl border transition-all h-full flex items-center gap-4 ${isConfigured ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' : telegramId ? 'bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30' : 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'}`}>
-          <div className={`p-2 rounded-lg shrink-0 ${isConfigured ? 'bg-emerald-500 text-white' : telegramId ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'}`}>
-            {isConfigured ? <ShieldCheck className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+        <div className={`p-4 rounded-xl border shadow-sm transition-all flex items-center gap-3 ${isConfigured ? 'bg-emerald-50/40 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800' : 'bg-amber-50/40 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800'}`}>
+          <div className={`p-2 rounded-lg ${isConfigured ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'}`}>
+            {isConfigured ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           </div>
           <div className="min-w-0">
-            <h3 className={`text-sm font-black tracking-tight ${isConfigured ? 'text-emerald-900 dark:text-emerald-300' : telegramId ? 'text-red-900 dark:text-red-300' : 'text-amber-900 dark:text-amber-300'}`}>
-              Alert Engine: {isConfigured ? 'Active' : telegramId ? 'Invalid ID' : 'Standby'}
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Alert Protocol</p>
+            <h3 className={`text-sm font-[1000] uppercase tracking-tighter ${isConfigured ? 'text-emerald-800 dark:text-emerald-400' : 'text-amber-800 dark:text-amber-400'}`}>
+              {isConfigured ? 'Linked & Monitoring' : 'No Active Recipient'}
             </h3>
-            <p className={`text-[10px] font-bold truncate ${isConfigured ? 'text-emerald-700/70 dark:text-emerald-500/70' : telegramId ? 'text-red-700/70 dark:text-red-500/70' : 'text-amber-700/70 dark:text-amber-500/70'}`}>
-              {isConfigured 
-                ? `Syncing to ID: ${telegramId}` 
-                : telegramId ? 'Handles/Usernames are not supported.' : 'Numeric ID required for notifications.'}
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid: Configuration & Troubleshooting */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Registration Section */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pt-2">
+        <div className="lg:col-span-3">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Protocol Setup</h3>
+              <span className="bg-slate-900 dark:bg-slate-800 text-white px-2 py-0.5 rounded font-[1000] text-[10px] tracking-tighter uppercase">Phase 01</span>
+              <h3 className="text-[11px] font-[1000] text-slate-800 dark:text-slate-100 uppercase tracking-widest">Notification Setup</h3>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <div className="flex justify-between items-end mb-1">
-                  <label className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-1">Telegram numeric Chat ID</label>
-                  {!isNumeric && inputValue && (
-                    <span className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase">
-                      <AlertTriangle className="w-2.5 h-2.5" /> Numeric Only
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Telegram numeric Chat ID</label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
                   <input 
                     type="text" 
                     inputMode="numeric"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Enter numeric ID (e.g. 12345678)"
-                    className={`flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all text-sm font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 ${
-                      !isNumeric && inputValue ? 'border-red-300 dark:border-red-900 focus:border-red-500' : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500'
-                    }`}
+                    placeholder="e.g. 12345678"
+                    className="flex-1 px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-[1000] tracking-tight"
                   />
                   <button 
                     onClick={handleSave}
-                    className={`px-8 py-3 rounded-xl font-black text-xs uppercase transition-all flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 hover:opacity-90 active:scale-95'}`}
+                    className={`px-8 py-3.5 rounded-xl font-[1000] text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${isSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-black/10'}`}
                   >
-                    {isSaved ? <CheckCircle2 className="w-4 h-4" /> : 'Link ID'}
+                    {isSaved ? 'Identity Saved' : 'Commit Link'}
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-400 ml-1 font-medium leading-relaxed">
-                  The backend only accepts <b>numeric IDs</b>. Usernames (handles) will result in delivery failure.
-                </p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                 <button 
-                  className="w-full py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
                   onClick={() => window.open(`https://t.me/TransitAI_bot?start=setup`, '_blank')}
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Get your ID from @TransitAI_bot
+                  <ExternalLink className="w-4 h-4" />
+                  Request Bot Authorization
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Support Section */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-slate-100/30 dark:bg-slate-900/30 p-5 md:p-6 rounded-2xl border border-transparent dark:border-slate-800 h-full">
-            <div className="flex items-center gap-2.5 mb-4">
-              <HelpCircle className="w-4 h-4 text-slate-400" />
-              <h3 className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Help Center</h3>
-            </div>
-            <ul className="space-y-4">
+        <div className="lg:col-span-2">
+          <div className="bg-slate-100/30 dark:bg-slate-900/30 p-6 rounded-2xl border border-transparent dark:border-slate-800 h-full flex flex-col">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Support Reference</h3>
+            <ul className="space-y-6 flex-1">
               {[
-                { id: '1', title: 'Find your ID', text: 'Message /id to @TransitAI_bot on Telegram to get your unique 9-10 digit number.' },
-                { id: '2', title: 'Why numeric?', text: 'Handles (@user) are private and cannot be used by the automated delivery system.' },
-                { id: '3', title: 'Missed Alerts', text: 'Ensure you have used /start with the bot first to authorize messages.' }
+                { id: '01', title: 'Registry', text: 'Initiate a message to @TransitAI_bot to fetch your system ID.' },
+                { id: '02', title: 'Format', text: 'IDs must be strictly numeric sequences without characters.' },
+                { id: '03', title: 'Security', text: 'All tracking data remains local; only alerts utilize Telegram.' }
               ].map(item => (
-                <li key={item.id} className="flex gap-3 items-start">
-                  <span className="flex-shrink-0 w-5 h-5 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-black border border-slate-200 dark:border-slate-700 text-slate-400">{item.id}</span>
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{item.title}</p>
-                    <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-bold">{item.text}</p>
+                <li key={item.id} className="flex gap-4 items-start">
+                  <span className="shrink-0 font-[1000] text-[11px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded leading-none">{item.id}</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-[1000] text-slate-900 dark:text-slate-100 uppercase tracking-tight mb-1">{item.title}</p>
+                    <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400 font-bold">{item.text}</p>
                   </div>
                 </li>
               ))}
             </ul>
+            <div className="mt-6 pt-6 border-t border-slate-200/50 dark:border-slate-800/50">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Diagnostic Log Ready</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Footer Meta */}
-      <div className="text-center pt-8 md:pt-12">
-        <p className="text-[9px] text-slate-400 dark:text-slate-600 font-black uppercase tracking-[0.3em]">
-          SG Bus Arrival Pro • v1.4.3 • Build 2404
+      <div className="text-center pt-10 pb-4 opacity-50">
+        <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.6em] leading-none">
+          SG BUS LIVE • SYSTEM CORE TERMINAL v1.5.0
         </p>
       </div>
     </div>
