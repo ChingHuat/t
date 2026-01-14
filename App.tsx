@@ -142,10 +142,10 @@ const App: React.FC = () => {
 
   return (
     <MemoryRouter>
-      <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row text-slate-100 selection:bg-emerald-500/30">
+      <div className="min-h-[100dvh] bg-slate-950 flex flex-col md:flex-row text-slate-100 selection:bg-emerald-500/30">
         
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-slate-900 border-r border-slate-800 z-50">
+        <aside className="hidden md:flex flex-col w-64 h-[100dvh] sticky top-0 bg-slate-900 border-r border-slate-800 z-50">
           <div className="relative p-7 overflow-hidden bg-slate-900">
             <div className="flex items-center gap-3.5 relative z-10">
               <div className="bg-emerald-600 text-white px-2.5 py-1.5 rounded font-[1000] text-sm tracking-tighter border border-emerald-500/30 shadow-lg shadow-emerald-500/10">

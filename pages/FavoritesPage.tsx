@@ -124,7 +124,8 @@ const PinnedServicesSection: React.FC<{
   const [loading, setLoading] = useState(true);
 
   const fetchAllData = async () => {
-    const codes = Array.from(new Set(pinnedServices.map(p => p.busStopCode)));
+    // FIX: Explicitly typing 'codes' as string[] ensures 'code' is not inferred as 'unknown', fixing indexing and parameter errors.
+    const codes: string[] = Array.from(new Set(pinnedServices.map(p => p.busStopCode)));
     if (codes.length === 0) { setLoading(false); return; }
     const results: Record<string, BusStopArrivalResponse> = {};
     await Promise.allSettled(codes.map(async (code) => {
