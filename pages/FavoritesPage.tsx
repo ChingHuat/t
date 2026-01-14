@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, Loader2, AlertCircle, Pin, Star, RefreshCw, Clock } from 'lucide-react';
+import { Heart, Loader2, Pin, Star, RefreshCw, Clock } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
 import { FavoriteBusStop, BusStopArrivalResponse, WeatherResponse, FavoriteService } from '../types';
 import ServiceRow from '../components/ServiceRow';
@@ -55,58 +55,59 @@ const FavoriteStopCard: React.FC<{
   const isRaining = weather && (weather.rain_mm > 0 || weather.level !== 'NONE');
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md flex flex-col h-fit">
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
-        <div className="flex-1 min-w-0 pr-3">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-black text-base text-slate-800 dark:text-slate-100 truncate tracking-tight">{stop.name}</h3>
-            {weather && <span className="shrink-0 text-[10px]">{isRaining ? '🌧️' : '☀️'}</span>}
+    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all flex flex-col h-fit">
+      <div className="p-7 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
+        <div className="flex-1 min-w-0 pr-5">
+          <div className="flex items-center gap-3 mb-1.5">
+            <h3 className="font-black text-xl md:text-3xl text-slate-900 dark:text-slate-100 truncate tracking-tighter">{stop.name}</h3>
+            {weather && <span className="shrink-0 text-xl">{isRaining ? '🌧️' : '☀️'}</span>}
           </div>
-          <div className="flex items-center gap-2">
-            <p className="text-[9px] font-black font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-1.5 rounded-md">
+          <div className="flex items-center gap-3">
+            <p className="text-xs md:text-base font-black font-mono text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-lg">
               {stop.code}
             </p>
             {lastUpdated && (
-              <div className="flex items-center gap-1 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                <Clock className="w-2.5 h-2.5" />
+              <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">
+                <Clock className="w-3.5 h-3.5" />
                 {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2.5">
            <button 
             onClick={() => loadData(true)}
             disabled={refreshing}
-            className={`p-2 bg-white dark:bg-slate-800 text-slate-400 hover:text-emerald-500 rounded-lg border border-slate-200 dark:border-slate-700 transition-all ${refreshing ? 'animate-spin' : ''}`}
+            className={`p-3 bg-white dark:bg-slate-800 text-slate-400 hover:text-emerald-500 rounded-xl border border-slate-200 dark:border-slate-700 transition-all ${refreshing ? 'animate-spin' : ''}`}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-5 h-5" />
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="p-2 text-red-500 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+            className="p-3 text-red-500 bg-red-50 dark:bg-red-500/10 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95"
           >
-            <Heart className="w-3.5 h-3.5 fill-current" />
+            <Heart className="w-5 h-5 fill-current" />
           </button>
         </div>
       </div>
       
-      <div className="p-3">
+      <div className="p-6 md:p-8">
         {loading && !data && (
-          <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing...</p>
           </div>
         )}
         
         {error && !data && (
-          <div className="text-center py-8 text-slate-400 dark:text-slate-600 flex flex-col items-center gap-2">
-             <p className="text-[10px] font-bold">Connection lost.</p>
-             <button onClick={() => loadData(true)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-[8px] font-black uppercase tracking-widest">Retry</button>
+          <div className="text-center py-16 text-slate-400 flex flex-col items-center gap-4">
+             <p className="text-xs font-black uppercase tracking-widest">Link Lost</p>
+             <button onClick={() => loadData(true)} className="px-8 py-3.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Reconnect</button>
           </div>
         )}
 
         {data && (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-6">
             {data.services.length > 0 ? (
               data.services.map(service => (
                 <ServiceRow 
@@ -121,7 +122,9 @@ const FavoriteStopCard: React.FC<{
                 />
               ))
             ) : (
-              <p className="text-center py-6 text-slate-400 dark:text-slate-600 text-[9px] font-black uppercase tracking-widest italic">No Buses</p>
+              <div className="text-center py-16 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">No active departures</p>
+              </div>
             )}
           </div>
         )}
@@ -169,29 +172,29 @@ const PinnedServicesSection: React.FC<{
   if (pinnedServices.length === 0) return null;
 
   return (
-    <div className="space-y-4 mb-8">
-      <div className="flex items-center gap-2 px-1">
-        <div className="p-2 bg-emerald-500 rounded-lg shadow-sm">
-          <Pin className="w-3.5 h-3.5 text-white fill-current" />
+    <div className="space-y-8 mb-16">
+      <div className="flex items-center gap-5 px-3">
+        <div className="p-4 bg-emerald-500 rounded-[1.5rem] shadow-xl shadow-emerald-500/20">
+          <Pin className="w-6 h-6 text-white fill-current" />
         </div>
         <div>
-          <h3 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest leading-none">Pinned Routes</h3>
-          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Direct Monitoring</p>
+          <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tighter leading-none">Priority Feed</h3>
+          <p className="text-[10px] md:text-xs font-black text-emerald-500 uppercase tracking-[0.3em] mt-2">Active Tracker</p>
         </div>
       </div>
       
       {loading && Object.keys(liveData).length === 0 ? (
-        <div className="flex flex-col items-center py-8">
-          <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+        <div className="flex flex-col items-center py-16">
+          <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {pinnedServices.map((pinned) => {
             const stopData = liveData[pinned.busStopCode];
             const serviceData = stopData?.services.find(s => s.ServiceNo === pinned.serviceNo);
             
             if (!serviceData) {
-              return <div key={`${pinned.busStopCode}-${pinned.serviceNo}`} className="h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl animate-pulse" />;
+              return <div key={`${pinned.busStopCode}-${pinned.serviceNo}`} className="h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] animate-pulse" />;
             }
 
             return (
@@ -228,46 +231,39 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
   const hasContent = favorites.length > 0 || pinnedServices.length > 0;
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-10 md:space-y-16 animate-in fade-in duration-700">
       <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
 
-      <div>
-        <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Hub Dashboard</h2>
-        <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.2em]">Real-time Hub</p>
+      <div className="px-3">
+        <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">Command Center</h2>
+        <p className="text-[10px] md:text-xs font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.4em] mt-2">Active Station Hub</p>
       </div>
 
       {!hasContent ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-900 rounded-2xl flex items-center justify-center">
-            <Heart className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+        <div className="flex flex-col items-center justify-center py-32 text-center space-y-8">
+          <div className="w-32 h-32 bg-white dark:bg-slate-900 rounded-[3rem] flex items-center justify-center shadow-2xl border-6 border-slate-50 dark:border-slate-800">
+            <Heart className="w-12 h-12 text-slate-200 dark:text-slate-700" />
           </div>
-          <div className="space-y-0.5">
-            <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg uppercase">Hub is Empty</h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-xs">Favorite stops or pin services in search to build your dashboard.</p>
+          <div className="space-y-3">
+            <h3 className="font-black text-slate-900 dark:text-slate-100 text-2xl uppercase tracking-tight">Hub Offline</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-500 max-w-sm font-black uppercase tracking-[0.2em] leading-relaxed">No favored terminals or priority feeds detected in local storage.</p>
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
-          <PinnedServicesSection 
-            pinnedServices={pinnedServices}
-            onPinToggle={togglePinnedService}
-            telegramId={telegramId}
-            activeAlerts={activeAlerts}
-            onAlertChange={onAlertChange}
-          />
-
+        <div className="space-y-20">
+          {/* Favorites Terminals moved to top */}
           {favorites.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 px-1">
-                <div className="p-2 bg-amber-500 rounded-lg shadow-sm">
-                  <Star className="w-3.5 h-3.5 text-white fill-current" />
+            <div className="space-y-10">
+              <div className="flex items-center gap-5 px-3">
+                <div className="p-4 bg-amber-500 rounded-[1.5rem] shadow-xl shadow-amber-500/20">
+                  <Star className="w-6 h-6 text-white fill-current" />
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest leading-none">Terminals</h3>
-                  <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Multi-Route Stations</p>
+                  <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tighter leading-none">Terminals</h3>
+                  <p className="text-[10px] md:text-xs font-black text-amber-500 uppercase tracking-[0.3em] mt-2">Station Watch</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-1 gap-10 items-start">
                 {favorites.map((stop) => (
                   <FavoriteStopCard 
                     key={stop.code} 
@@ -283,6 +279,15 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
               </div>
             </div>
           )}
+
+          {/* Priority Feed Section moved below Terminals */}
+          <PinnedServicesSection 
+            pinnedServices={pinnedServices}
+            onPinToggle={togglePinnedService}
+            telegramId={telegramId}
+            activeAlerts={activeAlerts}
+            onAlertChange={onAlertChange}
+          />
         </div>
       )}
     </div>
