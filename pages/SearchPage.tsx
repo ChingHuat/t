@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Heart, Loader2, AlertTriangle, RefreshCw, WifiOff, History, MapPin, Navigation, X } from 'lucide-react';
+import { Search, Heart, Loader2, AlertTriangle, RefreshCw, WifiOff, History, MapPin, Navigation, X, Trash2 } from 'lucide-react';
 import { fetchBusArrival, fetchWeather, searchBusStops } from '../services/busApi';
 import { BusStopArrivalResponse, FavoriteBusStop, WeatherResponse, FavoriteService } from '../types';
 import ServiceRow from '../components/ServiceRow';
@@ -62,7 +62,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
     if (searchTimeout.current) window.clearTimeout(searchTimeout.current);
 
     // If query looks like a bus stop code, we don't necessarily need to trigger search
-    // But we let the user search freely. If they enter a code, it might match exactly.
     const isCode = /^\d{5}$/.test(query.trim());
 
     if (query.trim().length >= 2 && !isCode) {
@@ -117,15 +116,18 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // If it's a 5 digit code, fetch immediately
     if (/^\d{5}$/.test(query.trim())) {
       handleFetchArrivals(query.trim());
     } else if (searchResults.length > 0) {
-      // Pick first result as default if user hits enter
       const first = searchResults[0];
       setQuery(first.busStopCode);
       handleFetchArrivals(first.busStopCode);
     }
+  };
+
+  const clearRecents = () => {
+    setRecents([]);
+    localStorage.removeItem('sg_bus_recents');
   };
 
   const isFavorited = data ? favorites.some(f => f.code === data.busStopCode) : false;
@@ -164,7 +166,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
           </div>
         </form>
 
-        {/* Floating Search Results List - Strictly using results array */}
+        {/* Floating Search Results List */}
         {searchResults.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-[100] mt-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
             <div className="max-h-[50vh] overflow-y-auto no-scrollbar py-1">
@@ -202,18 +204,28 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
           </div>
         )}
 
+        {/* Recent Search History with Clear Button */}
         {recents.length > 0 && !data && !loading && !searchResults.length && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar px-1 pt-2">
-            <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            {recents.map(r => (
-              <button 
-                key={r}
-                onClick={() => { setQuery(r); handleFetchArrivals(r); }}
-                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all whitespace-nowrap"
-              >
-                {r}
-              </button>
-            ))}
+          <div className="flex items-center justify-between px-1 pt-2">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              {recents.map(r => (
+                <button 
+                  key={r}
+                  onClick={() => { setQuery(r); handleFetchArrivals(r); }}
+                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all whitespace-nowrap"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={clearRecents}
+              className="ml-3 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
+              title="Clear History"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
       </div>
