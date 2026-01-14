@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, Loader2, Info, AlertCircle, ChevronDown, ChevronUp, Pin, Star } from 'lucide-react';
+import { Heart, Loader2, AlertCircle, ChevronDown, ChevronUp, Pin, Star, RefreshCw, Clock } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
 import { FavoriteBusStop, BusStopArrivalResponse, WeatherResponse, FavoriteService } from '../types';
 import ServiceRow from '../components/ServiceRow';
@@ -18,13 +18,19 @@ const FavoriteStopCard: React.FC<{
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    else if (!data) setLoading(true);
+    
     try {
       const arrivalRes = await fetchBusArrival(stop.code);
       setData(arrivalRes);
+      setLastUpdated(new Date());
       setError(false);
       try {
         const weatherRes = await fetchWeather(stop.code);
@@ -37,6 +43,7 @@ const FavoriteStopCard: React.FC<{
       setError(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -49,40 +56,60 @@ const FavoriteStopCard: React.FC<{
   const isRaining = weather && (weather.rain_mm > 0 || weather.level !== 'NONE');
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md">
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-800/20">
-        <div className="flex-1 min-w-0 pr-2">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate">{stop.name}</h3>
-            {weather && <span className="shrink-0">{isRaining ? '🌧️' : '☀️'}</span>}
+    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl group">
+      <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
+        <div className="flex-1 min-w-0 pr-4">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-black text-lg text-slate-800 dark:text-slate-100 truncate tracking-tight">{stop.name}</h3>
+            {weather && <span className="shrink-0 text-lg">{isRaining ? '🌧️' : '☀️'}</span>}
           </div>
-          <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tighter">{stop.code} • {stop.road}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-black font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter bg-emerald-50 dark:bg-emerald-900/20 px-1.5 rounded-md">
+              {stop.code}
+            </p>
+            {lastUpdated && (
+              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                <Clock className="w-3 h-3" />
+                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+            )}
+          </div>
         </div>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="shrink-0 p-2 text-red-500 bg-red-50 dark:bg-red-900/30 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-        >
-          <Heart className="w-5 h-5 fill-current" />
-        </button>
+        <div className="flex items-center gap-2">
+           <button 
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className={`p-2.5 bg-white dark:bg-slate-800 text-slate-400 hover:text-emerald-500 rounded-xl border border-slate-200 dark:border-slate-700 transition-all ${refreshing ? 'animate-spin' : 'hover:scale-110'}`}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="p-2.5 text-red-500 bg-red-50 dark:bg-red-900/30 rounded-xl hover:bg-red-500 hover:text-white transition-all hover:scale-110 shadow-sm"
+          >
+            <Heart className="w-5 h-5 fill-current" />
+          </button>
+        </div>
       </div>
       
-      <div className="p-3">
+      <div className="p-4">
         {loading && !data && (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fetching Arrivals</span>
           </div>
         )}
         
         {error && !data && (
-          <div className="text-center py-6 text-slate-400 dark:text-slate-600 text-xs flex flex-col items-center gap-2">
-             <AlertCircle className="w-5 h-5 text-slate-300 dark:text-slate-700" />
-             <p>Unable to connect to live data.</p>
-             <button onClick={loadData} className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">Try Again</button>
+          <div className="text-center py-10 text-slate-400 dark:text-slate-600 flex flex-col items-center gap-3">
+             <AlertCircle className="w-8 h-8 text-slate-200 dark:text-slate-800" />
+             <p className="text-xs font-bold">Live connection interrupted.</p>
+             <button onClick={() => loadData(true)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Reconnect Now</button>
           </div>
         )}
 
         {data && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {data.services.length > 0 ? (
               (isExpanded ? data.services : data.services.slice(0, 4)).map(service => (
                 <ServiceRow 
@@ -97,18 +124,18 @@ const FavoriteStopCard: React.FC<{
                 />
               ))
             ) : (
-              <p className="text-center py-4 text-slate-400 dark:text-slate-600 text-xs italic">No active services detected</p>
+              <p className="text-center py-6 text-slate-400 dark:text-slate-600 text-xs font-black uppercase tracking-widest italic">No Active Services</p>
             )}
             
             {data.services.length > 4 && (
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 mt-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-lg transition-all active:scale-95"
+                className="w-full flex items-center justify-center gap-2 py-3 mt-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl transition-all active:scale-95 border-2 border-dotted border-emerald-500/20"
               >
                 {isExpanded ? (
-                  <>Show fewer services <ChevronUp className="w-3 h-3" /></>
+                  <>Collapse List <ChevronUp className="w-4 h-4" /></>
                 ) : (
-                  <>+ {data.services.length - 4} more services <ChevronDown className="w-3 h-3" /></>
+                  <>View {data.services.length - 4} More Services <ChevronDown className="w-4 h-4" /></>
                 )}
               </button>
             )}
@@ -129,7 +156,6 @@ const PinnedServicesSection: React.FC<{
   const [liveData, setLiveData] = useState<Record<string, BusStopArrivalResponse>>({});
   const [loading, setLoading] = useState(true);
 
-  // Group unique stop codes to fetch data efficiently
   const stopCodes = useMemo(() => Array.from(new Set(pinnedServices.map(p => p.busStopCode))), [pinnedServices]);
 
   const fetchAllData = async () => {
@@ -159,33 +185,33 @@ const PinnedServicesSection: React.FC<{
   if (pinnedServices.length === 0) return null;
 
   return (
-    <div className="space-y-4 mb-8">
+    <div className="space-y-4 mb-10">
       <div className="flex items-center gap-2 px-1">
-        <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-          <Pin className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-current" />
+        <div className="p-2 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/20">
+          <Pin className="w-5 h-5 text-white fill-current" />
         </div>
-        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Pinned Buses</h3>
+        <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-[0.15em]">Pinned Departures</h3>
       </div>
       
       {loading && Object.keys(liveData).length === 0 ? (
-        <div className="flex flex-col items-center py-10 gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-          <p className="text-xs text-slate-400 font-medium">Updating arrivals...</p>
+        <div className="flex flex-col items-center py-16 gap-4">
+          <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Updating pinned routes...</p>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {pinnedServices.map((pinned) => {
             const stopData = liveData[pinned.busStopCode];
             const serviceData = stopData?.services.find(s => s.ServiceNo === pinned.serviceNo);
             
             if (!serviceData) {
               return (
-                <div key={`${pinned.busStopCode}-${pinned.serviceNo}`} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between animate-pulse">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg" />
-                    <div className="space-y-1">
-                      <div className="w-10 h-3 bg-slate-100 dark:bg-slate-800 rounded" />
-                      <div className="w-20 h-2 bg-slate-100 dark:bg-slate-800 rounded" />
+                <div key={`${pinned.busStopCode}-${pinned.serviceNo}`} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-11 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                    <div className="space-y-2">
+                      <div className="w-12 h-3 bg-slate-100 dark:bg-slate-800 rounded" />
+                      <div className="w-24 h-2 bg-slate-100 dark:bg-slate-800 rounded" />
                     </div>
                   </div>
                 </div>
@@ -235,23 +261,24 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
 
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">My Favorites</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Track pinned buses and favorite stops.</p>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Personalized Hub</h2>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest text-[10px]">Track your daily routes and hubs.</p>
         </div>
       </div>
 
       {!hasContent ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center">
-            <Heart className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+        <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+          <div className="w-32 h-32 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center shadow-inner relative">
+            <Heart className="w-16 h-16 text-slate-300 dark:text-slate-700" />
+            <Star className="absolute top-4 right-4 w-6 h-6 text-emerald-500/20 animate-pulse" />
           </div>
-          <div className="space-y-2">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">Nothing saved yet</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[240px]">Search for a stop and pin specific services or the whole stop to see them here.</p>
+          <div className="space-y-3">
+            <h3 className="font-black text-slate-800 dark:text-slate-100 text-xl tracking-tight uppercase">Dashboard Empty</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] leading-relaxed">Search for a stop and pin services or whole stops to personalize your transit hub.</p>
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           <PinnedServicesSection 
             pinnedServices={pinnedServices}
             onPinToggle={togglePinnedService}
@@ -261,14 +288,14 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
           />
 
           {favorites.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="flex items-center gap-2 px-1">
-                <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                  <Star className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-current" />
+                <div className="p-2 bg-amber-500 rounded-xl shadow-lg shadow-amber-500/20">
+                  <Star className="w-5 h-5 text-white fill-current" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Favorite Stops</h3>
+                <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-[0.15em]">Favorite Hubs</h3>
               </div>
-              <div className="grid gap-4">
+              <div className="grid gap-6">
                 {favorites.map((stop) => (
                   <FavoriteStopCard 
                     key={stop.code} 

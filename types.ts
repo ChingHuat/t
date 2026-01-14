@@ -1,4 +1,5 @@
 
+
 export type Drift = "DOWN" | "UP" | "STABLE" | "UNKNOWN";
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
 export type Stability = "STABLE" | "UNSTABLE" | "UNKNOWN";
@@ -16,7 +17,9 @@ export interface BusService {
   NextBus: BusArrivalInfo;
   NextBus2: BusArrivalInfo;
   NextBus3: BusArrivalInfo;
-  eta: number | "NA";
+  // Fix: Added "Arr" to the eta type to permit comparisons in the UI components (e.g., ServiceRow.tsx) 
+  // and align with the logic that handles both numeric minutes and "Arriving" status.
+  eta: number | "NA" | "Arr";
   drift: Drift;
   confidence: Confidence;
   stability: Stability;

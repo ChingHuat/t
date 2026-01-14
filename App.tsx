@@ -29,7 +29,7 @@ const App: React.FC = () => {
     return localStorage.getItem('sg_bus_telegram_id') || '';
   });
 
-  const [activeAlerts, setActiveAlerts] = useState<Record<string, string>>(() => {
+  const [activeAlerts, setAlerts] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('sg_bus_active_alerts');
     return saved ? JSON.parse(saved) : {};
   });
@@ -97,7 +97,7 @@ const App: React.FC = () => {
   };
 
   const updateAlert = useCallback((stopCode: string, serviceNo: string, alertId: string | null) => {
-    setActiveAlerts(prev => {
+    setAlerts(prev => {
       const key = `${stopCode}-${serviceNo}`;
       const next = { ...prev };
       if (alertId) {
@@ -117,7 +117,7 @@ const App: React.FC = () => {
         const response = await fetchAlertStatus(telegramId);
         const serverAlerts = response.alerts || [];
         
-        setActiveAlerts(prev => {
+        setAlerts(prev => {
           let hasChanged = false;
           const next = { ...prev };
 
@@ -192,26 +192,26 @@ const App: React.FC = () => {
             <Route 
               path="/" 
               element={
-                <SearchPage 
-                  favorites={favorites} 
-                  pinnedServices={pinnedServices}
-                  toggleFavorite={toggleFavorite} 
-                  togglePinnedService={togglePinnedService}
-                  telegramId={telegramId} 
-                  activeAlerts={activeAlerts}
-                  onAlertChange={updateAlert}
-                />
-              } 
-            />
-            <Route 
-              path="/favorites" 
-              element={
                 <FavoritesPage 
                   favorites={favorites} 
                   pinnedServices={pinnedServices}
                   toggleFavorite={toggleFavorite} 
                   togglePinnedService={togglePinnedService}
                   telegramId={telegramId}
+                  activeAlerts={activeAlerts}
+                  onAlertChange={updateAlert}
+                />
+              } 
+            />
+            <Route 
+              path="/search" 
+              element={
+                <SearchPage 
+                  favorites={favorites} 
+                  pinnedServices={pinnedServices}
+                  toggleFavorite={toggleFavorite} 
+                  togglePinnedService={togglePinnedService}
+                  telegramId={telegramId} 
                   activeAlerts={activeAlerts}
                   onAlertChange={updateAlert}
                 />
@@ -227,12 +227,12 @@ const App: React.FC = () => {
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 safe-bottom">
           <div className="max-w-2xl mx-auto flex justify-around p-2">
             <NavLink to="/" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
-              <Search className="w-6 h-6" />
-              <span className="text-[10px] font-medium mt-1">Search</span>
-            </NavLink>
-            <NavLink to="/favorites" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
               <Heart className="w-6 h-6" />
               <span className="text-[10px] font-medium mt-1">Favorites</span>
+            </NavLink>
+            <NavLink to="/search" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
+              <Search className="w-6 h-6" />
+              <span className="text-[10px] font-medium mt-1">Search</span>
             </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-all ${isActive ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-500 dark:text-slate-400'}`}>
               <Settings className="w-6 h-6" />
