@@ -146,19 +146,19 @@ const App: React.FC = () => {
         
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-64 h-[100dvh] sticky top-0 bg-slate-900 border-r border-slate-800 z-50">
-          <div className="relative p-7 overflow-hidden bg-slate-900">
-            <div className="flex items-center gap-3.5 relative z-10">
-              <div className="bg-emerald-600 text-white px-2.5 py-1.5 rounded font-[1000] text-sm tracking-tighter border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                SG
+          <div className="p-6">
+            <div className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl shadow-xl flex items-center gap-3">
+              <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg shadow-emerald-600/20">
+                <Bus className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-[15px] font-[1000] tracking-tighter text-white leading-none uppercase">BUS LIVE</h1>
-                <span className="text-[7px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1.5 block leading-none">TRANSIT ENGINE</span>
+                <h1 className="text-[14px] font-[1000] tracking-tighter text-white leading-none uppercase">SG BUS LIVE</h1>
+                <span className="text-[7px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1.5 block leading-none">Transit Engine</span>
               </div>
             </div>
           </div>
 
-          <nav className="flex-1 px-4 mt-8 space-y-2">
+          <nav className="flex-1 px-4 mt-4 space-y-2">
             <NavLink to="/" className={navClasses}>
               <Home className="w-4 h-4" />
               <span className="text-[9px] tracking-tight">Dashboard</span>
@@ -189,11 +189,11 @@ const App: React.FC = () => {
         {/* Mobile Header */}
         <header className="md:hidden sticky top-0 z-40 bg-slate-900 border-b border-slate-800 px-5 py-3 flex items-center justify-between shadow-xl">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-600 text-white px-2 py-1.5 rounded font-[1000] text-[13px] tracking-tighter leading-none border border-emerald-500/20">
-              SG
+            <div className="bg-emerald-600 p-1.5 rounded-lg text-white shadow-lg shadow-emerald-600/20">
+              <Bus className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-[14px] font-[1000] tracking-tighter text-white uppercase leading-none">BUS LIVE</h1>
+              <h1 className="text-[14px] font-[1000] tracking-tighter text-white uppercase leading-none">SG BUS LIVE</h1>
               <div className="flex items-center gap-1.5 mt-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]' : 'bg-red-500'}`} />
                 <span className="text-[7px] font-[1000] text-emerald-500 tracking-[0.15em] uppercase leading-none">Live Monitoring</span>

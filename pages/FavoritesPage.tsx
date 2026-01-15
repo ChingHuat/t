@@ -154,8 +154,8 @@ const PinnedServicesSection: React.FC<{
             <div key={`${p.busStopCode}-${p.serviceNo}`} className="flex flex-col gap-2">
               <div className="flex items-center gap-1.5 px-1 group">
                 <div className="w-1 h-3 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
-                <span className="text-[9px] font-[1000] text-slate-400 uppercase tracking-tighter group-hover:text-emerald-400 transition-colors truncate max-w-full">
-                  {p.busStopName} <span className="text-slate-600 font-bold ml-1">#{p.busStopCode}</span>
+                <span className="text-[10px] font-[1000] text-white uppercase tracking-tighter group-hover:text-emerald-400 transition-colors truncate max-w-full">
+                  {p.busStopName} <span className="text-emerald-500/80 font-bold ml-1.5">#{p.busStopCode}</span>
                 </span>
               </div>
               {s ? (

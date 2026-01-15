@@ -52,7 +52,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         </div>
 
         <div className={`p-4 rounded-xl border shadow-sm transition-all flex items-center gap-3 ${isConfigured ? 'bg-emerald-900/10 border-emerald-800' : 'bg-amber-900/10 border-amber-800'}`}>
-          <div className={`p-2 rounded-lg ${isConfigured ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'}`}>
+          <div className={`p-2 rounded-lg ${isConfigured ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-amber-500 text-white shadow-lg shadow-emerald-500/20'}`}>
             {isConfigured ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           </div>
           <div className="min-w-0">
@@ -111,9 +111,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Support Reference</h3>
             <ul className="space-y-6 flex-1">
               {[
-                { id: '01', title: 'Registry', text: 'Initiate a message to @TransitAI_bot to fetch your system ID.' },
-                { id: '02', title: 'Format', text: 'IDs must be strictly numeric sequences without characters.' },
-                { id: '03', title: 'Security', text: 'All tracking data remains local; only alerts utilize Telegram.' }
+                { id: '01', title: 'Find My ID', text: 'Search for "@userinfobot" in Telegram and click "Start".' },
+                { id: '02', title: 'Copy Number', text: 'The bot will reply with your numeric ID. Copy that number only.' },
+                { id: '03', title: 'Authorize Bot', text: 'Open @TransitAI_bot and click "Start" so it has permission to message you.' }
               ].map(item => (
                 <li key={item.id} className="flex gap-4 items-start">
                   <span className="shrink-0 font-[1000] text-[11px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded leading-none">{item.id}</span>

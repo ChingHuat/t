@@ -43,10 +43,12 @@ const getLoadInfo = (load?: string) => {
 };
 
 const getStatusInfo = (s: BusService) => {
+  // If stability is not stable or confidence is low, we flag it as UNCERTAIN
+  // Updated color to red-400 as per user request
   if (s.stability === 'UNSTABLE' || s.confidence === 'LOW') {
-    return { text: 'UNSTABLE', color: 'text-red-400' };
+    return { text: 'UNCERTAIN', color: 'text-red-400' };
   }
-  return { text: 'STABLE', color: 'text-emerald-400' };
+  return { text: 'ON TRACK', color: 'text-emerald-400' };
 };
 
 const getSecondaryEtaColor = (val: number | 'ARR' | null) => {
@@ -127,7 +129,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     <div className="relative w-full">
       <div className="flex flex-row items-center p-3 bg-slate-900 border border-slate-800 rounded-xl shadow-lg transition-all duration-200 hover:border-slate-700">
         
-        {/* Left Section: Primary ETA (20% smaller than previous 6xl) */}
+        {/* Left Section: Primary ETA */}
         <div className="flex flex-col items-center justify-center min-w-[5rem] shrink-0">
           <div className={`text-5xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()}`}>
             <span>{eta1}</span>
@@ -147,12 +149,12 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           
           {/* Top Row: Bus Service No + Status indicators */}
           <div className="flex items-center justify-between gap-2">
-            {/* Bus Service Number: Enhanced 10% for prominence */}
+            {/* Bus Service Number */}
             <div className="text-4xl font-[1000] text-white leading-none tracking-tight">
               {service.ServiceNo}
             </div>
 
-            {/* Status Labels stacked together with color */}
+            {/* Status Labels */}
             <div className="flex flex-col items-end gap-0.5 shrink-0">
               <span className={`text-[9px] font-[1000] uppercase tracking-wider ${statusInfo.color}`}>
                 {statusInfo.text}
@@ -167,16 +169,16 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
 
           {/* Bottom Row: Labeled and Colored Next Bus info using Timestamps */}
           <div className="flex items-center gap-4 mt-2.5 pt-2 border-t border-slate-800/50">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-              Next <span className={`font-black ${getSecondaryEtaColor(min2)}`}>{ts2}</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center">
+              2nd 🚌 <span className={`font-black ${getSecondaryEtaColor(min2)} ml-1.5`}>{ts2}</span>
             </span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-              Next 2 <span className={`font-black ${getSecondaryEtaColor(min3)}`}>{ts3}</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center">
+              3rd 🚌 <span className={`font-black ${getSecondaryEtaColor(min3)} ml-1.5`}>{ts3}</span>
             </span>
           </div>
         </div>
 
-        {/* Right Section: Action icons vertically aligned */}
+        {/* Right Section: Action icons */}
         <div className="flex flex-col gap-2 ml-1 pl-3 border-l border-slate-800 shrink-0">
           <button 
             onClick={handleToggleAlert} 
