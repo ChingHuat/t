@@ -1,20 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Heart, Loader2, X, MapPin } from 'lucide-react';
-import { fetchBusArrival, fetchWeather, searchBusStops } from '../services/busApi';
-import { BusStopArrivalResponse, FavoriteBusStop, WeatherResponse, FavoriteService } from '../types';
+import { fetchBusArrival, searchBusStops } from '../services/busApi';
+import { BusStopArrivalResponse, FavoriteBusStop, FavoriteService } from '../types';
 import ServiceRow from '../components/ServiceRow';
 import ActiveAlertsBanner from '../components/ActiveAlertsBanner';
-
-const WeatherIndicator: React.FC<{ weather: WeatherResponse }> = ({ weather }) => {
-  const isRaining = weather.rain_mm > 0 || weather.level !== 'NONE';
-  return (
-    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-900/40 border border-amber-500/30 text-[8px] font-black uppercase tracking-widest text-amber-500 shrink-0`}>
-      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-      {isRaining ? 'RAIN' : 'CLEAR'}
-    </div>
-  );
-};
 
 interface SearchPageProps {
   favorites: FavoriteBusStop[];
@@ -32,7 +22,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
-  const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const searchTimeout = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,11 +53,10 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
   }, [query]);
 
   const handleFetchArrivals = async (stopCode: string) => {
-    setLoading(true); setData(null); setWeather(null); setSearchResults([]); 
+    setLoading(true); setData(null); setSearchResults([]); 
     try {
       const arrivalRes = await fetchBusArrival(stopCode);
       setData(arrivalRes);
-      try { setWeather(await fetchWeather(stopCode)); } catch {}
     } catch {} finally { setLoading(false); }
   };
 
@@ -128,22 +116,17 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
       {data && (
         <div className="flex flex-col animate-in slide-in-from-bottom-2 duration-300">
           <div className="w-full flex justify-center">
-            <div className="w-full max-w-3xl px-3 flex items-start min-h-[3rem] mb-2 pt-4">
+            <div className="w-full max-w-3xl px-3 flex items-center min-h-[3rem] mb-2 pt-4">
               <div className="w-24 shrink-0 flex items-center justify-center">
                 <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2 py-1 rounded-md border border-slate-700/50 tracking-tighter">
                   {data.busStopCode}
                 </span>
               </div>
-              <div className="flex-1 px-6 min-w-0">
-                <div className="flex items-start gap-3">
-                  <h3 className="font-bold text-[11px] text-slate-100 uppercase tracking-widest line-clamp-2 leading-snug">{data.busStopName}</h3>
-                  {weather && (
-                    <div className="shrink-0 mt-0.5">
-                      <WeatherIndicator weather={weather} />
-                    </div>
-                  )}
-                </div>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] truncate mt-1 leading-none">{data.roadName}</p>
+              <div className="flex-1 px-4 min-w-0">
+                <h3 className={`font-bold ${data.busStopName.length > 45 ? 'text-[7.5px]' : data.busStopName.length > 35 ? 'text-[8.5px]' : data.busStopName.length > 25 ? 'text-[10px]' : 'text-[11px]'} ${data.busStopName.length > 25 ? 'tracking-wide' : 'tracking-[0.15em]'} text-slate-100 uppercase truncate leading-none`}>
+                  {data.busStopName}
+                </h3>
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] truncate mt-1.5 leading-none">{data.roadName}</p>
               </div>
               <div className="w-20 shrink-0 flex items-center justify-center">
                 <button 

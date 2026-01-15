@@ -6,16 +6,6 @@ import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, WeatherRespon
 import ServiceRow from '../components/ServiceRow';
 import ActiveAlertsBanner from '../components/ActiveAlertsBanner';
 
-const WeatherIndicator: React.FC<{ weather: WeatherResponse }> = ({ weather }) => {
-  const isRaining = weather.rain_mm > 0 || weather.level !== 'NONE';
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-900/40 border border-amber-500/30 text-[8px] font-black uppercase tracking-widest text-amber-500 shrink-0">
-      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-      {isRaining ? 'RAIN' : 'CLEAR'}
-    </div>
-  );
-};
-
 interface FavoritesPageProps {
   favorites: FavoriteBusStop[];
   pinnedServices: FavoriteService[];
@@ -30,44 +20,53 @@ const StopHeader: React.FC<{
   code: string; 
   name: string; 
   road?: string; 
-  weather?: WeatherResponse | null; 
   actions?: React.ReactNode; 
- }> = ({ code, name, road, weather, actions }) => (
-  <div className="w-full flex justify-center">
-    <div className="w-full max-w-3xl px-3 flex items-start min-h-[3rem] mb-2 pt-4">
-      {/* Code Badge Rail */}
-      <div className="w-24 shrink-0 flex items-center justify-center">
-        <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2 py-1 rounded-md border border-slate-700/50 tracking-tighter">
-          {code}
-        </span>
-      </div>
-      
-      {/* Content Engine */}
-      <div className="flex-1 px-6 min-w-0">
-        <div className="flex items-start gap-3">
-          <h3 className="font-bold text-[11px] text-slate-100 uppercase tracking-widest line-clamp-2 leading-snug">
+ }> = ({ code, name, road, actions }) => {
+  // Ultra-dynamic scaling for long stop names to force one-line visibility
+  let fontSizeClass = 'text-[11px]';
+  let trackingClass = 'tracking-[0.15em]';
+
+  if (name.length > 45) {
+    fontSizeClass = 'text-[7.5px]';
+    trackingClass = 'tracking-normal';
+  } else if (name.length > 35) {
+    fontSizeClass = 'text-[8.5px]';
+    trackingClass = 'tracking-tight';
+  } else if (name.length > 25) {
+    fontSizeClass = 'text-[10px]';
+    trackingClass = 'tracking-wide';
+  }
+
+  return (
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-3xl px-3 flex items-center min-h-[3rem] mb-2 pt-4">
+        {/* Code Badge Rail (Fixed) */}
+        <div className="w-24 shrink-0 flex items-center justify-center">
+          <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2 py-1 rounded-md border border-slate-700/50 tracking-tighter">
+            {code}
+          </span>
+        </div>
+        
+        {/* Content Engine - Reduced padding to px-4 to gain space */}
+        <div className="flex-1 px-4 min-w-0">
+          <h3 className={`font-bold ${fontSizeClass} ${trackingClass} text-slate-100 uppercase truncate leading-none`}>
             {name}
           </h3>
-          {weather && (
-            <div className="shrink-0 mt-0.5">
-              <WeatherIndicator weather={weather} />
-            </div>
+          {road && (
+            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] truncate mt-1.5 leading-none">
+              {road}
+            </p>
           )}
         </div>
-        {road && (
-          <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] truncate mt-1 leading-none">
-            {road}
-          </p>
-        )}
-      </div>
 
-      {/* Actions Rail */}
-      <div className="w-20 shrink-0 flex items-center justify-center gap-2">
-        {actions}
+        {/* Actions Rail (Fixed) */}
+        <div className="w-20 shrink-0 flex items-center justify-center gap-2">
+          {actions}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 type PinnedServiceWithData = BusService & { busStopCode: string; busStopName: string; roadName: string };
 
@@ -79,7 +78,6 @@ const PinnedServicesSection: React.FC<{
   onPinToggle: (pinned: FavoriteService) => void;
 }> = ({ pinnedServices, telegramId, activeAlerts, onAlertChange, onPinToggle }) => {
   const [servicesData, setServicesData] = useState<PinnedServiceWithData[]>([]);
-  const [weatherData, setWeatherData] = useState<Record<string, WeatherResponse>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchAllData = useCallback(async () => {
@@ -92,15 +90,9 @@ const PinnedServicesSection: React.FC<{
     
     try {
       const arrivalPromises = stopsToFetch.map(code => fetchBusArrival(code));
-      const weatherPromises = stopsToFetch.map(code => fetchWeather(code).catch(() => null));
-      
-      const [arrivalResults, weatherResults] = await Promise.all([
-        Promise.allSettled(arrivalPromises),
-        Promise.all(weatherPromises)
-      ]);
+      const arrivalResults = await Promise.allSettled(arrivalPromises);
 
       const allServices: PinnedServiceWithData[] = [];
-      const newWeatherMap: Record<string, WeatherResponse> = {};
 
       arrivalResults.forEach((res, index) => {
         if (res.status === 'fulfilled') {
@@ -120,14 +112,7 @@ const PinnedServicesSection: React.FC<{
         }
       });
 
-      weatherResults.forEach((res, index) => {
-        if (res) {
-          newWeatherMap[stopsToFetch[index]] = res;
-        }
-      });
-
       setServicesData(allServices);
-      setWeatherData(newWeatherMap);
     } catch (err) {
       console.error('PinnedServicesSection fetch error:', err);
     } finally { 
@@ -175,7 +160,6 @@ const PinnedServicesSection: React.FC<{
                 code={stopCode} 
                 name={group.name} 
                 road={group.roadName} 
-                weather={weatherData[stopCode]}
               />
               <div className="flex flex-col gap-3">
                 {group.services.map(s => (
@@ -209,7 +193,6 @@ const FavoriteStopCard: React.FC<{
   onPinToggle: (pinned: FavoriteService) => void;
 }> = ({ stop, onRemove, telegramId, activeAlerts, onAlertChange, pinnedServices, onPinToggle }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
-  const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -217,9 +200,8 @@ const FavoriteStopCard: React.FC<{
     if (isManual) setRefreshing(true);
     else if (!data) setLoading(true);
     try {
-      const results = await Promise.allSettled([fetchBusArrival(stop.code), fetchWeather(stop.code)]);
-      if (results[0].status === 'fulfilled') setData(results[0].value);
-      if (results[1].status === 'fulfilled') setWeather(results[1].value);
+      const results = await fetchBusArrival(stop.code);
+      setData(results);
     } catch {} finally { setLoading(false); setRefreshing(false); }
   };
 
@@ -231,7 +213,6 @@ const FavoriteStopCard: React.FC<{
         code={stop.code} 
         name={stop.name} 
         road={stop.road || data?.roadName} 
-        weather={weather}
         actions={
           <div className="flex items-center gap-2">
             <button onClick={() => loadData(true)} className={`p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-emerald-400 transition-colors ${refreshing ? 'animate-spin text-emerald-400' : ''}`}>
