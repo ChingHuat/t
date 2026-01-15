@@ -25,13 +25,15 @@ const StopHeader: React.FC<{
   let fontSizeClass = 'text-[12px]';
   let trackingClass = 'tracking-[0.1em]';
 
-  if (name.length > 45) fontSizeClass = 'text-[8px]';
-  else if (name.length > 35) fontSizeClass = 'text-[9px]';
+  // Dynamic font sizing to ensure all names display, scaling down for extreme lengths
+  if (name.length > 55) fontSizeClass = 'text-[7px]';
+  else if (name.length > 45) fontSizeClass = 'text-[8px]';
+  else if (name.length > 35) fontSizeClass = 'text-[9.5px]';
   else if (name.length > 25) fontSizeClass = 'text-[11px]';
 
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-3xl px-3 flex items-center min-h-[4rem] mb-3 mt-6">
+      <div className="w-full max-w-3xl px-3 flex items-center min-h-[3.5rem] mb-1 mt-1">
         {/* Left Rail (Fixed 96px) */}
         <div className="w-24 shrink-0 flex items-center justify-center">
           <span className="text-[10px] font-black bg-slate-900 text-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] tracking-tighter">
@@ -39,18 +41,18 @@ const StopHeader: React.FC<{
           </span>
         </div>
         {/* Center Content (Flex-1) */}
-        <div className="flex-1 px-5 min-w-0 flex flex-col justify-center items-center text-center">
-          <h3 className={`font-[1000] ${fontSizeClass} ${trackingClass} text-white uppercase truncate leading-tight w-full`}>
+        <div className="flex-1 px-4 min-w-0 flex flex-col justify-center items-center text-center">
+          <h3 className={`font-[1000] ${fontSizeClass} ${trackingClass} text-white uppercase leading-[1.1] w-full line-clamp-2`}>
             {name}
           </h3>
           {road && (
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] truncate mt-1.5 leading-none opacity-60 w-full">
+            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] truncate mt-1 leading-none opacity-60 w-full">
               {road}
             </p>
           )}
         </div>
         {/* Right Rail (Fixed 96px) */}
-        <div className="w-24 shrink-0 flex items-center justify-center gap-2">
+        <div className="w-24 shrink-0 flex items-center justify-center gap-1.5">
           {actions}
         </div>
       </div>
@@ -126,8 +128,8 @@ const PinnedServicesSection: React.FC<{
   if (pinnedServices.length === 0) return null;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
-      <div className="flex justify-center">
+    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="flex justify-center mb-2">
         <div className="w-full max-w-3xl px-3 flex items-center gap-4">
           <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl">
              <Zap className="w-4 h-4 text-amber-500 fill-current" />
@@ -142,11 +144,11 @@ const PinnedServicesSection: React.FC<{
           <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
         </div>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-4">
           {(Object.entries(groupedServices) as [string, { name: string; roadName: string; services: PinnedServiceWithData[] }][]).map(([stopCode, group]) => (
-            <div key={stopCode} className="flex flex-col border-t border-white/5 first:border-t-0 pt-6 first:pt-0">
+            <div key={stopCode} className="flex flex-col border-t border-white/5 first:border-t-0 pt-2 first:pt-0">
               <StopHeader code={stopCode} name={group.name} road={group.roadName} />
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 {group.services.map(s => (
                   <ServiceRow 
                     key={`${s.busStopCode}-${s.ServiceNo}`}
@@ -193,27 +195,27 @@ const FavoriteStopCard: React.FC<{
   useEffect(() => { loadData(); const interval = setInterval(loadData, 30000); return () => clearInterval(interval); }, [stop.code]);
 
   return (
-    <div className="flex flex-col border-t border-white/5 first:border-t-0 pt-12 first:pt-0">
+    <div className="flex flex-col border-t border-white/5 first:border-t-0 pt-6 first:pt-0">
       <StopHeader 
         code={stop.code} 
         name={stop.name} 
         road={stop.road || data?.roadName} 
         actions={
-          <div className="flex items-center gap-2.5">
-            <button onClick={() => loadData(true)} className={`w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all ${refreshing ? 'animate-spin text-emerald-400' : ''}`}>
-              <RefreshCw className="w-4 h-4" />
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => loadData(true)} className={`w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all ${refreshing ? 'animate-spin text-emerald-400' : ''}`}>
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
-            <button onClick={onRemove} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-red-500 hover:border-red-500/30 transition-all">
-              <Heart className="w-4 h-4 text-red-500 fill-current" />
+            <button onClick={onRemove} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-red-500 hover:border-red-500/30 transition-all">
+              <Heart className="w-3.5 h-3.5 text-red-500 fill-current" />
             </button>
           </div>
         }
       />
       
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {loading && !data ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-10 h-10 text-emerald-500 animate-spin opacity-50" />
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin opacity-50" />
           </div>
         ) : (
           (data?.services || []).map(s => (
@@ -236,7 +238,7 @@ const FavoriteStopCard: React.FC<{
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices, toggleFavorite, togglePinnedService, telegramId, activeAlerts, onAlertChange }) => {
   return (
-    <div className="space-y-24 animate-in fade-in duration-500 max-w-5xl mx-auto">
+    <div className="space-y-12 animate-in fade-in duration-500 max-w-5xl mx-auto">
       <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
       
       <PinnedServicesSection 
@@ -248,7 +250,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
       />
 
       {favorites.length > 0 && (
-        <div className="space-y-12">
+        <div className="space-y-6">
           <div className="flex justify-center">
             <div className="w-full max-w-3xl px-3 flex items-center gap-4">
               <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
@@ -258,7 +260,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
               <div className="flex-1 h-px bg-gradient-to-r from-emerald-500/20 to-transparent" />
             </div>
           </div>
-          <div className="space-y-16">
+          <div className="space-y-10">
             {favorites.map((stop) => (
               <FavoriteStopCard 
                 key={stop.code} 
