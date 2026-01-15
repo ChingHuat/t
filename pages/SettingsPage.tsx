@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Send, CheckCircle2, AlertCircle, ExternalLink, ShieldCheck, HelpCircle, Activity, Wifi, WifiOff, Loader2, AlertTriangle } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, ExternalLink, ShieldCheck, HelpCircle, Activity, Wifi, WifiOff, Loader2, AlertTriangle, Terminal } from 'lucide-react';
 
 interface SettingsPageProps {
   telegramId: string;
@@ -25,81 +25,84 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
   const statusLabel = apiOnline === null ? 'checking' : apiOnline ? 'online' : 'offline';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
+    <div className="space-y-12 animate-in fade-in duration-500 max-w-5xl mx-auto pb-12">
       <div className="px-1 mb-2">
-        <h2 className="text-xl md:text-2xl font-[1000] text-white tracking-tighter uppercase leading-none">Global Config</h2>
-        <p className="text-[9px] font-black text-white uppercase tracking-widest mt-1.5 block leading-none">Operational Status & Network Link</p>
+        <h2 className="text-2xl font-[1000] text-white tracking-tighter uppercase leading-none">Global Link Console</h2>
+        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] mt-2 block leading-none">CORE OPERATIONAL PARAMETERS</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-        <div className={`p-4 rounded-xl border flex items-center justify-between shadow-sm transition-all ${
-          statusLabel === 'online' ? 'bg-emerald-900/10 border-emerald-800' : 
-          statusLabel === 'offline' ? 'bg-red-900/10 border-red-800' : 
-          'bg-slate-900 border-slate-800'
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={`p-6 rounded-[2rem] border backdrop-blur-md shadow-2xl transition-all duration-300 flex items-center justify-between ${
+          statusLabel === 'online' ? 'bg-emerald-500/5 border-emerald-500/20 shadow-emerald-500/5' : 
+          statusLabel === 'offline' ? 'bg-red-500/5 border-red-500/20 shadow-red-500/5' : 
+          'bg-slate-900 border-white/5'
         }`}>
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${statusLabel === 'online' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500'}`}>
-              <Activity className="w-4 h-4" />
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${statusLabel === 'online' ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-slate-800 text-slate-500'}`}>
+              <Activity className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">System Proxy</p>
-              <p className={`text-sm font-[1000] uppercase tracking-tighter ${statusLabel === 'online' ? 'text-white' : 'text-slate-500'}`}>
-                {statusLabel === 'checking' ? 'Establishing Link...' : statusLabel === 'online' ? 'Protocol Nominal' : 'Network Fault'}
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] leading-none mb-1.5">Proxy Protocol</p>
+              <p className={`text-base font-[1000] uppercase tracking-tighter ${statusLabel === 'online' ? 'text-white' : 'text-slate-500'}`}>
+                {statusLabel === 'checking' ? 'SYNCING...' : statusLabel === 'online' ? 'LINK SECURE' : 'LINK OFFLINE'}
               </p>
             </div>
           </div>
-          {statusLabel === 'online' ? <Wifi className="w-5 h-5 text-emerald-500 animate-pulse" /> : <WifiOff className="w-5 h-5 text-red-500" />}
+          {statusLabel === 'online' ? <Wifi className="w-6 h-6 text-emerald-500 animate-pulse" /> : <WifiOff className="w-6 h-6 text-red-500" />}
         </div>
 
-        <div className={`p-4 rounded-xl border shadow-sm transition-all flex items-center gap-3 ${isConfigured ? 'bg-emerald-900/10 border-emerald-800' : 'bg-amber-900/10 border-amber-800'}`}>
-          <div className={`p-2 rounded-lg ${isConfigured ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-amber-500 text-white shadow-lg shadow-emerald-500/20'}`}>
-            {isConfigured ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+        <div className={`p-6 rounded-[2rem] border backdrop-blur-md shadow-2xl transition-all duration-300 flex items-center gap-4 ${isConfigured ? 'bg-emerald-500/5 border-emerald-500/20 shadow-emerald-500/5' : 'bg-amber-500/5 border-amber-500/20 shadow-amber-500/5'}`}>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isConfigured ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)]'}`}>
+            {isConfigured ? <ShieldCheck className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Alert Protocol</p>
-            <h3 className={`text-sm font-[1000] uppercase tracking-tighter ${isConfigured ? 'text-white' : 'text-amber-400'}`}>
-              {isConfigured ? 'Linked & Monitoring' : 'No Active Recipient'}
+            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] leading-none mb-1.5">Alert Integrity</p>
+            <h3 className={`text-base font-[1000] uppercase tracking-tighter ${isConfigured ? 'text-white' : 'text-amber-500'}`}>
+              {isConfigured ? 'MONITORING ACTIVE' : 'AWAITING RECIPIENT'}
             </h3>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3">
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5">
-              <span className="bg-slate-800 text-white px-2 py-0.5 rounded font-[1000] text-[10px] tracking-tighter uppercase">Phase 01</span>
-              <h3 className="text-[11px] font-[1000] text-slate-100 uppercase tracking-widest">Notification Setup</h3>
+          <div className="bg-[#0f172a]/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8">
+            <div className="flex items-center gap-4">
+              <span className="bg-emerald-500 text-white px-3 py-1 rounded-lg font-black text-[10px] tracking-widest uppercase shadow-lg shadow-emerald-500/20">MODULE 01</span>
+              <h3 className="text-[12px] font-[1000] text-white uppercase tracking-[0.3em]">TELEMETRY LINK</h3>
             </div>
             
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Telegram numeric Chat ID</label>
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <input 
-                    type="text" 
-                    inputMode="numeric"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="e.g. 12345678"
-                    className="flex-1 px-4 py-3.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-[1000] tracking-tight text-white"
-                  />
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-2">Telegram Protocol ID</label>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="Enter numeric identity..."
+                      className="w-full px-6 py-5 bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all text-sm font-black tracking-widest text-white placeholder:text-slate-700"
+                    />
+                    <Terminal className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-800" />
+                  </div>
                   <button 
                     onClick={handleSave}
-                    className={`px-8 py-3.5 rounded-xl font-[1000] text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${isSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-100 text-slate-900 shadow-black/10'}`}
+                    className={`px-10 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl ${isSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-white text-slate-900 shadow-white/10'}`}
                   >
-                    {isSaved ? 'Identity Saved' : 'Commit Link'}
+                    {isSaved ? 'LINK ESTABLISHED' : 'COMMIT IDENTITY'}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-slate-800">
+              <div className="pt-8 border-t border-white/5">
                 <button 
-                  className="w-full py-3.5 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-5 bg-slate-800/40 border border-white/5 rounded-2xl text-slate-400 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95"
                   onClick={() => window.open(`https://t.me/TransitAI_bot?start=setup`, '_blank')}
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  Request Bot Authorization
+                  <ExternalLink className="w-5 h-5 text-emerald-500" />
+                  Request Protocol Auth
                 </button>
               </div>
             </div>
@@ -107,33 +110,36 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-slate-900/30 p-6 rounded-2xl border border-slate-800 h-full flex flex-col">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Support Reference</h3>
-            <ul className="space-y-6 flex-1">
+          <div className="bg-[#0f172a]/20 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/5 h-full flex flex-col shadow-xl">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-8">SETUP SCHEMATICS</h3>
+            <ul className="space-y-8 flex-1">
               {[
-                { id: '01', title: 'Find My ID', text: 'Search for "@userinfobot" in Telegram and click "Start".' },
-                { id: '02', title: 'Copy Number', text: 'The bot will reply with your numeric ID. Copy that number only.' },
-                { id: '03', title: 'Authorize Bot', text: 'Open @TransitAI_bot and click "Start" so it has permission to message you.' }
+                { id: 'I', title: 'ACCESS BOT', text: 'Search @userinfobot on Telegram and initiate "Start".' },
+                { id: 'II', title: 'ID RETRIEVAL', text: 'Copy the numeric string returned by the bot interface.' },
+                { id: 'III', title: 'PERMISSION', text: 'Open @TransitAI_bot and click "Start" to permit alerts.' }
               ].map(item => (
-                <li key={item.id} className="flex gap-4 items-start">
-                  <span className="shrink-0 font-[1000] text-[11px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded leading-none">{item.id}</span>
+                <li key={item.id} className="flex gap-5 items-start">
+                  <span className="shrink-0 font-[1000] text-[12px] text-emerald-500 bg-emerald-500/10 w-10 h-10 flex items-center justify-center rounded-xl border border-emerald-500/20">{item.id}</span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-[1000] text-slate-100 uppercase tracking-tight mb-1">{item.title}</p>
-                    <p className="text-[11px] leading-snug text-slate-400 font-bold">{item.text}</p>
+                    <p className="text-[11px] font-[1000] text-white uppercase tracking-tight mb-1.5">{item.title}</p>
+                    <p className="text-[12px] leading-relaxed text-slate-400 font-bold">{item.text}</p>
                   </div>
                 </li>
               ))}
             </ul>
-            <div className="mt-6 pt-6 border-t border-slate-800/50">
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Diagnostic Log Ready</p>
+            <div className="mt-8 pt-8 border-t border-white/5">
+               <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] leading-none">Diagnostic Stream Ready</p>
+               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="text-center pt-10 pb-4 opacity-50">
-        <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.6em] leading-none">
-          SG BUS LIVE • SYSTEM CORE TERMINAL v1.5.0
+      <div className="text-center pt-16 pb-6 opacity-30">
+        <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.8em] leading-none">
+          TRANSIT ENGINE • PRO v1.6.2 BUILD 8421
         </p>
       </div>
     </div>
