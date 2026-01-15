@@ -205,8 +205,8 @@ const App: React.FC = () => {
           </button>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full max-w-7xl mx-auto md:px-10 px-4 py-6 md:py-10 pb-28 md:pb-10 overflow-y-auto" key={refreshKey}>
+        {/* Main Content Area - px-2 on mobile for immersive layout with safe gutter */}
+        <main className="flex-1 w-full max-w-7xl mx-auto md:px-10 px-2 py-6 md:py-10 pb-28 md:pb-10 overflow-y-auto" key={refreshKey}>
           <Routes>
             <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
             <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
