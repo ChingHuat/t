@@ -126,21 +126,21 @@ const SearchPage: React.FC<SearchPageProps> = ({ favorites, pinnedServices, togg
         <div className="flex flex-col animate-in slide-in-from-bottom-6 duration-500">
           <div className="w-full flex justify-center">
             <div className="w-full max-w-3xl px-3 flex items-center min-h-[4rem] mb-6 pt-6">
-              {/* Left Rail (Fixed 96px) */}
-              <div className="w-24 shrink-0 flex items-center justify-center">
+              {/* Left Rail (Fixed 80px to match rows) */}
+              <div className="w-[80px] shrink-0 flex items-center justify-center">
                 <span className="text-[10px] font-black bg-slate-900 text-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] tracking-tighter">
                   {data.busStopCode}
                 </span>
               </div>
               {/* Center Content (Flex-1) */}
-              <div className="flex-1 px-5 min-w-0 flex flex-col justify-center items-center text-center">
+              <div className="flex-1 px-2 min-w-0 flex flex-col justify-center items-center text-center">
                 <h3 className={`font-[1000] text-white uppercase truncate leading-tight w-full ${data.busStopName.length > 25 ? 'text-[11px]' : 'text-[14px]'}`}>
                   {data.busStopName}
                 </h3>
                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] truncate mt-1.5 opacity-60 leading-none w-full">{data.roadName}</p>
               </div>
-              {/* Right Rail (Fixed 96px) */}
-              <div className="w-24 shrink-0 flex items-center justify-center">
+              {/* Right Rail (Fixed 80px to match rows) */}
+              <div className="w-[80px] shrink-0 flex items-center justify-center">
                 <button 
                   onClick={() => toggleFavorite({ code: data.busStopCode, name: data.busStopName, road: data.roadName })}
                   className={`w-11 h-11 flex items-center justify-center rounded-[1.2rem] transition-all active:scale-90 ${isFavorited ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'bg-slate-900 text-slate-500 border border-white/10'}`}

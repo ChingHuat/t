@@ -44,8 +44,6 @@ const getLoadInfo = (load?: string) => {
 
 const getStatusInfo = (s: BusService, currentEta: number | "ARR" | "NA" | "Arr") => {
   if (s.stability === 'UNSTABLE' || s.confidence === 'LOW') {
-    // Soften: Only show "UNCERTAIN" if the bus is within 12 minutes. 
-    // Farther buses naturally have higher uncertainty, so we suppress the alert to reduce noise.
     if (typeof currentEta === 'number' && currentEta > 12) return null;
     return { text: 'UNCERTAIN', color: 'text-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.1)]' };
   }
@@ -127,8 +125,8 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
       <div className="relative w-full max-w-3xl px-3 group">
         <div className="relative flex flex-row items-stretch min-h-[7.5rem] bg-[#0f172a]/40 backdrop-blur-md border border-white/5 rounded-[2rem] shadow-2xl overflow-hidden group-hover:bg-[#1e293b]/60 transition-all duration-300">
           
-          {/* Rail 1: ETA (Left Rail - Fixed width 96px) */}
-          <div className="w-24 shrink-0 flex flex-col items-center justify-center border-r border-white/5 bg-white/[0.02]">
+          {/* Rail 1: ETA (Left Rail - Fixed width 80px for mobile safety) */}
+          <div className="w-[80px] shrink-0 flex flex-col items-center justify-center border-r border-white/5 bg-white/[0.02]">
             <div className={`font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()} ${isUrgent ? 'animate-pulse' : ''}`}>
               <span className={eta1 === 'ARR' ? 'text-[28px]' : 'text-[44px]'}>{eta1}</span>
               {typeof eta1 === 'number' && (
@@ -143,10 +141,10 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           </div>
 
           {/* Rail 2: Primary Info (Center Rail - Flex-1) */}
-          <div className="flex-1 flex flex-col justify-center items-center px-2 min-w-0">
-            {/* Bus No and Status Block - Anchored to center */}
-            <div className="flex items-start justify-center gap-5 w-full">
-              <div className="text-[40px] font-[1000] text-white leading-none tracking-tighter drop-shadow-lg">
+          <div className="flex-1 flex flex-col justify-center items-center px-1 min-w-0">
+            {/* Bus No and Status Block - Optimized gap-3 for mobile fit */}
+            <div className="flex items-start justify-center gap-3 w-full">
+              <div className="text-[40px] font-[1000] text-white leading-none tracking-tighter drop-shadow-lg tabular-nums">
                 {service.ServiceNo}
               </div>
               <div className="flex flex-col items-start gap-2 shrink-0 mt-1">
@@ -164,7 +162,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             </div>
 
             {/* Timings Row */}
-            <div className="flex items-center justify-center gap-6 mt-5 w-full">
+            <div className="flex items-center justify-center gap-4 mt-5 w-full">
               <div className="flex items-center whitespace-nowrap bg-black/20 px-2 py-1 rounded-lg border border-white/5">
                 <span className="text-[6px] font-black text-slate-500 uppercase tracking-widest">NEXT</span>
                 <span className={`text-[10px] font-[1000] ${getSecondaryEtaColor(min2)} ml-2 tabular-nums`}>{ts2}</span>
@@ -176,8 +174,8 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             </div>
           </div>
 
-          {/* Rail 3: Actions (Right Rail - Fixed width 96px) */}
-          <div className="w-24 shrink-0 flex flex-col items-center justify-center gap-2.5 border-l border-white/5 bg-white/[0.02]">
+          {/* Rail 3: Actions (Right Rail - Fixed width 80px for mobile safety) */}
+          <div className="w-[80px] shrink-0 flex flex-col items-center justify-center gap-2.5 border-l border-white/5 bg-white/[0.02]">
             <button 
               onClick={(e) => { e.stopPropagation(); handleToggleAlert(); }} 
               disabled={loading} 

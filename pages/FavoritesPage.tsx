@@ -25,7 +25,7 @@ const StopHeader: React.FC<{
   let fontSizeClass = 'text-[12px]';
   let trackingClass = 'tracking-[0.1em]';
 
-  // Dynamic font sizing to ensure all names display, scaling down for extreme lengths
+  // Dynamic sizing for name length
   if (name.length > 55) fontSizeClass = 'text-[7px]';
   else if (name.length > 45) fontSizeClass = 'text-[8px]';
   else if (name.length > 35) fontSizeClass = 'text-[9.5px]';
@@ -34,14 +34,14 @@ const StopHeader: React.FC<{
   return (
     <div className="w-full flex justify-center">
       <div className="w-full max-w-3xl px-3 flex items-center min-h-[3.5rem] mb-1 mt-1">
-        {/* Left Rail (Fixed 96px) */}
-        <div className="w-24 shrink-0 flex items-center justify-center">
+        {/* Left Rail (Strict 80px) */}
+        <div className="w-[80px] shrink-0 flex items-center justify-center">
           <span className="text-[10px] font-black bg-slate-900 text-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] tracking-tighter">
             {code}
           </span>
         </div>
-        {/* Center Content (Flex-1) */}
-        <div className="flex-1 px-4 min-w-0 flex flex-col justify-center items-center text-center">
+        {/* Center Content */}
+        <div className="flex-1 px-2 min-w-0 flex flex-col justify-center items-center text-center">
           <h3 className={`font-[1000] ${fontSizeClass} ${trackingClass} text-white uppercase leading-[1.1] w-full line-clamp-2`}>
             {name}
           </h3>
@@ -51,8 +51,8 @@ const StopHeader: React.FC<{
             </p>
           )}
         </div>
-        {/* Right Rail (Fixed 96px) */}
-        <div className="w-24 shrink-0 flex items-center justify-center gap-1.5">
+        {/* Right Rail (Strict 80px) */}
+        <div className="w-[80px] shrink-0 flex items-center justify-center gap-1.5">
           {actions}
         </div>
       </div>
@@ -129,7 +129,7 @@ const PinnedServicesSection: React.FC<{
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
-      <div className="flex justify-center mb-2">
+      <div className="flex justify-center mb-1">
         <div className="w-full max-w-3xl px-3 flex items-center gap-4">
           <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl">
              <Zap className="w-4 h-4 text-amber-500 fill-current" />
@@ -144,11 +144,11 @@ const PinnedServicesSection: React.FC<{
           <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {(Object.entries(groupedServices) as [string, { name: string; roadName: string; services: PinnedServiceWithData[] }][]).map(([stopCode, group]) => (
-            <div key={stopCode} className="flex flex-col border-t border-white/5 first:border-t-0 pt-2 first:pt-0">
+            <div key={stopCode} className="flex flex-col border-t border-white/5 first:border-t-0 pt-1 first:pt-0">
               <StopHeader code={stopCode} name={group.name} road={group.roadName} />
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 mt-1">
                 {group.services.map(s => (
                   <ServiceRow 
                     key={`${s.busStopCode}-${s.ServiceNo}`}
@@ -194,6 +194,18 @@ const FavoriteStopCard: React.FC<{
 
   useEffect(() => { loadData(); const interval = setInterval(loadData, 30000); return () => clearInterval(interval); }, [stop.code]);
 
+  // Bubble pinned services to the top of the card
+  const sortedServices = useMemo(() => {
+    if (!data?.services) return [];
+    return [...data.services].sort((a, b) => {
+      const aPinned = pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === a.ServiceNo);
+      const bPinned = pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === b.ServiceNo);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return 0;
+    });
+  }, [data?.services, pinnedServices, stop.code]);
+
   return (
     <div className="flex flex-col border-t border-white/5 first:border-t-0 pt-6 first:pt-0">
       <StopHeader 
@@ -218,18 +230,23 @@ const FavoriteStopCard: React.FC<{
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin opacity-50" />
           </div>
         ) : (
-          (data?.services || []).map(s => (
-            <ServiceRow 
-              key={s.ServiceNo} 
-              service={s} 
-              busStopCode={stop.code}
-              telegramId={telegramId}
-              alertId={activeAlerts[`${stop.code}-${s.ServiceNo}`]}
-              onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
-              isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
-              onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
-            />
-          ))
+          sortedServices.map(s => {
+            const isSvcPinned = pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo);
+            return (
+              <ServiceRow 
+                key={s.ServiceNo} 
+                service={s} 
+                busStopCode={stop.code}
+                telegramId={telegramId}
+                alertId={activeAlerts[`${stop.code}-${s.ServiceNo}`]}
+                onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
+                isPinned={isSvcPinned}
+                onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
+                // Add a subtle priority flag for special styling if needed
+                subtitle={isSvcPinned ? "PRIORITY LINK" : undefined}
+              />
+            );
+          })
         )}
       </div>
     </div>
@@ -238,9 +255,9 @@ const FavoriteStopCard: React.FC<{
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices, toggleFavorite, togglePinnedService, telegramId, activeAlerts, onAlertChange }) => {
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 max-w-5xl mx-auto">
-      <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
       
+      {/* Priority Hub at the absolute top */}
       <PinnedServicesSection 
         pinnedServices={pinnedServices}
         telegramId={telegramId}
@@ -249,18 +266,20 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({ favorites, pinnedServices
         onPinToggle={togglePinnedService}
       />
 
+      <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
+
       {favorites.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-4 pt-4 border-t border-white/5">
           <div className="flex justify-center">
             <div className="w-full max-w-3xl px-3 flex items-center gap-4">
               <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
                  <Bus className="w-4 h-4 text-emerald-500" />
               </div>
-              <h2 className="text-[12px] font-[1000] text-emerald-500 tracking-[0.4em] uppercase">Terminals Linked</h2>
+              <h2 className="text-[12px] font-[1000] text-emerald-500 tracking-[0.4em] uppercase">Station Favorites</h2>
               <div className="flex-1 h-px bg-gradient-to-r from-emerald-500/20 to-transparent" />
             </div>
           </div>
-          <div className="space-y-10">
+          <div className="space-y-8">
             {favorites.map((stop) => (
               <FavoriteStopCard 
                 key={stop.code} 
