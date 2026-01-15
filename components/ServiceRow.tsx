@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, Loader2, X, Pin, PinOff } from 'lucide-react';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert } from '../services/busApi';
@@ -44,7 +43,6 @@ const getLoadInfo = (load?: string) => {
 
 const getStatusInfo = (s: BusService) => {
   // If stability is not stable or confidence is low, we flag it as UNCERTAIN
-  // Updated color to red-400 as per user request
   if (s.stability === 'UNSTABLE' || s.confidence === 'LOW') {
     return { text: 'UNCERTAIN', color: 'text-red-400' };
   }
@@ -54,13 +52,31 @@ const getStatusInfo = (s: BusService) => {
 const getSecondaryEtaColor = (val: number | 'ARR' | null) => {
   if (val === 'ARR' || (typeof val === 'number' && val <= 3)) return 'text-emerald-400';
   if (typeof val === 'number' && val <= 10) return 'text-amber-400';
-  return 'text-slate-500';
+  return 'text-slate-400'; 
 };
 
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showThresholds, setShowThresholds] = useState(false);
   
+  // Display status (what the user sees)
+  const [displayedStatus, setDisplayedStatus] = useState(() => getStatusInfo(service));
+  // Reference to the raw status from the previous prop update to track consecutive values
+  const lastSeenRawStatusText = useRef(displayedStatus.text);
+
+  // Smoothing logic: Update displayedStatus ONLY if the same raw status is seen in 2 consecutive prop updates
+  useEffect(() => {
+    const currentRaw = getStatusInfo(service);
+    
+    // If the current status matches what we saw in the previous refresh cycle, we confirm it
+    if (currentRaw.text === lastSeenRawStatusText.current) {
+      setDisplayedStatus(currentRaw);
+    }
+    
+    // Always track the current status for comparison in the next refresh cycle
+    lastSeenRawStatusText.current = currentRaw.text;
+  }, [service]); // service prop changes every ~30s poll
+
   const rawEta = service.eta;
   const eta1 = (rawEta === 'Arr' || rawEta === 0) ? 'ARR' : rawEta;
   
@@ -73,7 +89,8 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const ts3 = getTimestamp(service.NextBus3);
 
   const loadInfo = getLoadInfo(service.NextBus.Load);
-  const statusInfo = getStatusInfo(service);
+  // displayedStatus is smoothed, whereas eta1/min2/min3 update immediately from 'service'
+  const statusInfo = displayedStatus;
 
   const handleToggleAlert = async () => {
     if (alertId) {
@@ -125,13 +142,17 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     return 'text-white';
   };
 
+  // Determine if the ETA is urgent (ARR or 1 min) for the attention-grabbing pulse
+  // animate-pulse is a standard Tailwind utility that creates a fading pulse effect.
+  const isUrgent = eta1 === 'ARR' || (typeof eta1 === 'number' && eta1 <= 1);
+
   return (
     <div className="relative w-full">
       <div className="flex flex-row items-center p-3 bg-slate-900 border border-slate-800 rounded-xl shadow-lg transition-all duration-200 hover:border-slate-700">
         
         {/* Left Section: Primary ETA */}
         <div className="flex flex-col items-center justify-center min-w-[5rem] shrink-0">
-          <div className={`text-5xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()}`}>
+          <div className={`text-5xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()} ${isUrgent ? 'animate-pulse' : ''}`}>
             <span>{eta1}</span>
             {typeof eta1 === 'number' && (
               <span className="text-[12px] font-black uppercase text-slate-500 tracking-tighter ml-1">M</span>
@@ -168,13 +189,15 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           </div>
 
           {/* Bottom Row: Labeled and Colored Next Bus info using Timestamps */}
-          <div className="flex items-center gap-4 mt-2.5 pt-2 border-t border-slate-800/50">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center">
-              2nd 🚌 <span className={`font-black ${getSecondaryEtaColor(min2)} ml-1.5`}>{ts2}</span>
-            </span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center">
-              3rd 🚌 <span className={`font-black ${getSecondaryEtaColor(min3)} ml-1.5`}>{ts3}</span>
-            </span>
+          <div className="flex items-center gap-6 mt-2.5 pt-2 border-t border-slate-800/50">
+            <div className="flex items-baseline whitespace-nowrap">
+              <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">2ND</span>
+              <span className={`text-[11px] font-black ${getSecondaryEtaColor(min2)} ml-2 tabular-nums tracking-tight`}>{ts2}</span>
+            </div>
+            <div className="flex items-baseline whitespace-nowrap">
+              <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">3RD</span>
+              <span className={`text-[11px] font-black ${getSecondaryEtaColor(min3)} ml-2 tabular-nums tracking-tight`}>{ts3}</span>
+            </div>
           </div>
         </div>
 
@@ -193,7 +216,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
               onClick={(e) => { e.stopPropagation(); onPinToggle(); }} 
               className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 ${isPinned ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-500 hover:text-slate-300 border border-slate-700'}`}
             >
-              {isPinned ? <Pin className="w-4 h-4 fill-current" /> : <PinOff className="w-4 h-4" />}
+              {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
             </button>
           )}
         </div>
