@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, X, Loader2 } from 'lucide-react';
 import { cancelAlert } from '../services/busApi';

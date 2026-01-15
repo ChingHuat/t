@@ -50,7 +50,8 @@ const getStatusInfo = (s: BusService) => {
 };
 
 const getSecondaryEtaColor = (val: number | 'ARR' | null) => {
-  if (val === 'ARR' || (typeof val === 'number' && val <= 15)) return 'text-amber-400';
+  if (val === 'ARR' || (typeof val === 'number' && val <= 3)) return 'text-emerald-400';
+  if (typeof val === 'number' && val <= 10) return 'text-amber-400';
   return 'text-slate-500'; 
 };
 
@@ -71,6 +72,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
 
   const rawEta = service.eta;
   const eta1 = (rawEta === 'Arr' || rawEta === 0) ? 'ARR' : rawEta;
+  
   const ts2 = getTimestamp(service.NextBus2);
   const ts3 = getTimestamp(service.NextBus3);
   const min2 = getMinutesFromNow(service.NextBus2);
@@ -122,10 +124,10 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
       <div className="relative w-full max-w-3xl px-3 group">
         <div className="relative flex flex-row items-stretch min-h-[7rem] bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden group-hover:bg-slate-800/80 transition-all">
           
-          {/* Section 1: ETA Rail (Left) - Fixed Width (96px) */}
+          {/* Rail 1: ETA (Left, Fixed) */}
           <div className="w-24 shrink-0 flex flex-col items-center justify-center border-r border-slate-800/50">
-            <div className={`text-4xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()} ${isUrgent ? 'animate-pulse' : ''}`}>
-              <span>{eta1}</span>
+            <div className={`font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()} ${isUrgent ? 'animate-pulse' : ''}`}>
+              <span className={eta1 === 'ARR' ? 'text-4xl' : 'text-5xl'}>{eta1}</span>
               {typeof eta1 === 'number' && (
                 <span className="text-[12px] font-black uppercase text-slate-600 ml-1">M</span>
               )}
@@ -137,15 +139,13 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             )}
           </div>
 
-          {/* Section 2: Main Bus Info (Center) - Flexible and Centered */}
-          <div className="flex-1 flex flex-col justify-center px-4 min-w-0">
-            {/* Top Row: Service Number and Status Status grouped together for visual centering */}
-            <div className="flex items-start justify-center gap-6">
+          {/* Rail 2: Primary Info (Center, Flexible & Centered) */}
+          <div className="flex-1 flex flex-col justify-center px-2 min-w-0">
+            {/* Grouped Status Block for Visual Centering */}
+            <div className="flex items-start justify-center gap-4">
               <div className="text-4xl font-[1000] text-white leading-none tracking-tight">
                 {service.ServiceNo}
               </div>
-              
-              {/* Vertical Status Label Stack */}
               <div className="flex flex-col items-start gap-0.5 shrink-0 mt-0.5">
                 <span className={`text-[8px] font-[1000] uppercase tracking-widest ${statusInfo.color} leading-none block`}>
                   {statusInfo.text}
@@ -158,33 +158,32 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
               </div>
             </div>
 
-            {/* Arrival Schedule Row - Also centered */}
-            <div className="flex items-center justify-center gap-6 mt-4">
-              <div className="flex items-center">
+            {/* Schedule Row with No-Wrap Grouping */}
+            <div className="flex items-center justify-center gap-5 mt-4">
+              <div className="flex items-center whitespace-nowrap">
                 <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">NEXT</span>
                 <span className={`text-[11px] font-[1000] ${getSecondaryEtaColor(min2)} ml-2 tabular-nums`}>{ts2}</span>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center whitespace-nowrap">
                 <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">3RD</span>
                 <span className={`text-[11px] font-[1000] ${getSecondaryEtaColor(min3)} ml-2 tabular-nums`}>{ts3}</span>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Action Rail (Right) - Fixed Width matched to Left Rail (96px) for perfect centering */}
+          {/* Rail 3: Controls (Right, Fixed) */}
           <div className="w-24 shrink-0 flex flex-col items-center justify-center gap-2 border-l border-slate-800/50 bg-slate-900/30">
             <button 
               onClick={(e) => { e.stopPropagation(); handleToggleAlert(); }} 
               disabled={loading} 
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${alertId ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:bg-slate-700'}`}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 ${alertId ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:bg-slate-700'}`}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : alertId ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
             </button>
-            
             {onPinToggle && (
               <button 
                 onClick={(e) => { e.stopPropagation(); onPinToggle(); }} 
-                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${isPinned ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:bg-slate-700'}`}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 ${isPinned ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:bg-slate-700'}`}
               >
                 <Pin className={`w-4 h-4 ${isPinned ? 'fill-current' : ''}`} />
               </button>
@@ -192,7 +191,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           </div>
         </div>
 
-        {/* Action Overlay */}
+        {/* Interaction Overlay */}
         {showThresholds && !alertId && (
           <div className="absolute inset-x-3 inset-y-0 z-20 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center gap-1.5 rounded-2xl animate-in fade-in duration-150">
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mr-2">NOTIFY IN:</span>

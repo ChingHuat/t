@@ -22,7 +22,6 @@ const StopHeader: React.FC<{
   road?: string; 
   actions?: React.ReactNode; 
  }> = ({ code, name, road, actions }) => {
-  // Ultra-dynamic scaling for long stop names to force one-line visibility
   let fontSizeClass = 'text-[11px]';
   let trackingClass = 'tracking-[0.15em]';
 
@@ -40,14 +39,11 @@ const StopHeader: React.FC<{
   return (
     <div className="w-full flex justify-center">
       <div className="w-full max-w-3xl px-3 flex items-center min-h-[3rem] mb-2 pt-4">
-        {/* Code Badge Rail (Fixed) */}
         <div className="w-24 shrink-0 flex items-center justify-center">
           <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2 py-1 rounded-md border border-slate-700/50 tracking-tighter">
             {code}
           </span>
         </div>
-        
-        {/* Content Engine - Reduced padding to px-4 to gain space */}
         <div className="flex-1 px-4 min-w-0">
           <h3 className={`font-bold ${fontSizeClass} ${trackingClass} text-slate-100 uppercase truncate leading-none`}>
             {name}
@@ -58,8 +54,6 @@ const StopHeader: React.FC<{
             </p>
           )}
         </div>
-
-        {/* Actions Rail (Fixed) */}
         <div className="w-20 shrink-0 flex items-center justify-center gap-2">
           {actions}
         </div>
