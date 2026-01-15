@@ -122,7 +122,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
       <div className="relative w-full max-w-3xl px-3 group">
         <div className="relative flex flex-row items-stretch min-h-[7rem] bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden group-hover:bg-slate-800/80 transition-all">
           
-          {/* Section 1: ETA Rail (Left) - Fixed Width */}
+          {/* Section 1: ETA Rail (Left) - Fixed Width (96px) */}
           <div className="w-24 shrink-0 flex flex-col items-center justify-center border-r border-slate-800/50">
             <div className={`text-4xl font-[1000] tabular-nums leading-none tracking-tighter flex items-baseline ${getEtaColorClass()} ${isUrgent ? 'animate-pulse' : ''}`}>
               <span>{eta1}</span>
@@ -137,28 +137,29 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             )}
           </div>
 
-          {/* Section 2: Main Bus Info (Center) - Flexible */}
-          <div className="flex-1 flex flex-col justify-center px-6 min-w-0">
-            <div className="flex items-start justify-between">
+          {/* Section 2: Main Bus Info (Center) - Flexible and Centered */}
+          <div className="flex-1 flex flex-col justify-center px-4 min-w-0">
+            {/* Top Row: Service Number and Status Status grouped together for visual centering */}
+            <div className="flex items-start justify-center gap-6">
               <div className="text-4xl font-[1000] text-white leading-none tracking-tight">
                 {service.ServiceNo}
               </div>
               
               {/* Vertical Status Label Stack */}
-              <div className="flex flex-col items-end gap-0.5 shrink-0">
-                <span className={`text-[8px] font-[1000] uppercase tracking-widest ${statusInfo.color} leading-none text-right block`}>
+              <div className="flex flex-col items-start gap-0.5 shrink-0 mt-0.5">
+                <span className={`text-[8px] font-[1000] uppercase tracking-widest ${statusInfo.color} leading-none block`}>
                   {statusInfo.text}
                 </span>
                 {loadInfo && (
-                  <span className={`text-[8px] font-[1000] uppercase tracking-widest ${loadInfo.color} leading-none text-right block`}>
+                  <span className={`text-[8px] font-[1000] uppercase tracking-widest ${loadInfo.color} leading-none block`}>
                     {loadInfo.text}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Arrival Schedule Row */}
-            <div className="flex items-center gap-6 mt-4">
+            {/* Arrival Schedule Row - Also centered */}
+            <div className="flex items-center justify-center gap-6 mt-4">
               <div className="flex items-center">
                 <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest">NEXT</span>
                 <span className={`text-[11px] font-[1000] ${getSecondaryEtaColor(min2)} ml-2 tabular-nums`}>{ts2}</span>
@@ -170,8 +171,8 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             </div>
           </div>
 
-          {/* Section 3: Action Rail (Right) - Fixed Width */}
-          <div className="w-20 shrink-0 flex flex-col items-center justify-center gap-2 border-l border-slate-800/50 bg-slate-900/30">
+          {/* Section 3: Action Rail (Right) - Fixed Width matched to Left Rail (96px) for perfect centering */}
+          <div className="w-24 shrink-0 flex flex-col items-center justify-center gap-2 border-l border-slate-800/50 bg-slate-900/30">
             <button 
               onClick={(e) => { e.stopPropagation(); handleToggleAlert(); }} 
               disabled={loading} 
