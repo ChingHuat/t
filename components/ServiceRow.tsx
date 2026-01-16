@@ -4,6 +4,7 @@ import { Bell, BellOff, Loader2, X, Pin, AlertCircle, ArrowRight } from 'lucide-
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert } from '../services/busApi';
+import { getStatusInfo } from '../services/statusMapper';
 
 interface ServiceRowProps {
   service: BusService;
@@ -33,17 +34,6 @@ const getLoadStatus = (load?: string) => {
   }
 };
 
-const getStabilityStyle = (stability?: string) => {
-  switch (stability) {
-    case 'STABLE': 
-      return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
-    case 'UNSTABLE': 
-      return 'bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.1)]';
-    default: 
-      return 'bg-white/5 text-slate-500 border-white/10';
-  }
-};
-
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showThresholds, setShowThresholds] = useState(false);
@@ -53,6 +43,9 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const eta1 = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
   const eta2 = getMinutes(service.NextBus2);
   const loadInfo = getLoadStatus(service.NextBus.Load);
+
+  // Derive the precise status info (Label + Hex) from the 36-combination table
+  const statusInfo = getStatusInfo(service.drift, service.confidence, service.stability);
 
   const handleToggleAlert = async () => {
     if (alertId) {
@@ -90,7 +83,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     <div className="relative mb-2 last:mb-0 group">
       <div className={`flex items-stretch bg-[#1a1a1e] border border-white/5 rounded-2xl overflow-hidden shadow-md transition-all ${isPinned ? 'ring-1 ring-indigo-500/30 bg-[#1e1e24]' : ''}`}>
         
-        {/* Col 1: Arrival Telemetry (Left) - NEW POSITION */}
+        {/* Col 1: Arrival Telemetry (Left) - Swapped Position */}
         <div className="w-16 shrink-0 flex flex-col items-center justify-center bg-white/[0.03] border-r border-white/5 py-4">
           <span className={`text-2xl font-black tabular-nums tracking-tighter leading-none ${getEtaColor()} ${eta1 === 'ARR' ? 'animate-pulse' : ''}`}>
             {eta1}
@@ -100,18 +93,24 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           )}
         </div>
 
-        {/* Col 2: Identity & Secondary Data (Center) - NEW POSITION */}
+        {/* Col 2: Identity & Secondary Data (Center) - Swapped Position */}
         <div className="flex-1 min-w-0 px-6 py-6 flex flex-col justify-center">
           <div className="flex items-center justify-between mb-2.5">
             {/* Bus Service Number increased by 10% (from 20px/xl to 22px) */}
             <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
               {service.ServiceNo}
             </span>
-            {service.stability && service.stability !== 'UNKNOWN' && (
-              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-widest transition-all ${getStabilityStyle(service.stability)}`}>
-                {service.stability}
-              </span>
-            )}
+            {/* Deterministic Status Label from 36-Combination Matrix */}
+            <span 
+              style={{ 
+                color: statusInfo.hex, 
+                borderColor: `${statusInfo.hex}40`, 
+                backgroundColor: `${statusInfo.hex}15` 
+              }}
+              className="text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-[0.15em] transition-all min-w-[70px] text-center"
+            >
+              {statusInfo.label}
+            </span>
           </div>
           
           <div className="flex items-center gap-3">
