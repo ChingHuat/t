@@ -33,7 +33,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
             {apiOnline ? <Wifi className="w-7 h-7" /> : <WifiOff className="w-7 h-7" />}
           </div>
           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Link Status</span>
-          <p className="text-[11px] font-black text-white uppercase tracking-tight">{apiOnline ? 'Operational' : 'Off-Grid'}</p>
+          <p className="text-[11px] font-black text-white uppercase tracking-tight">{apiOnline ? 'Live' : 'Off-Grid'}</p>
         </div>
         <div className="bg-[#18181b] p-7 rounded-[2rem] flex flex-col items-center text-center border border-white/5 shadow-lg">
           <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(79,70,229,0.1)]">

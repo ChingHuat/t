@@ -115,7 +115,7 @@ const App: React.FC = () => {
               <h1 className="text-xs font-black tracking-[0.2em] uppercase text-white">Orbit Transit</h1>
               <div className="flex items-center gap-1.5 leading-none mt-0.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Operational' : 'Server Syncing'}</span>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Live' : 'Server Syncing'}</span>
               </div>
             </div>
           </div>
