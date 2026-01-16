@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Search, LayoutGrid, Cpu, Bus, RefreshCw } from 'lucide-react';
+import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -30,6 +30,20 @@ const App: React.FC = () => {
 
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // Error Notification dismissal timer
+  useEffect(() => {
+    if (globalError) {
+      const timer = setTimeout(() => setGlobalError(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [globalError]);
+
+  const handleError = useCallback((err: any) => {
+    const message = err instanceof Error ? err.message : 'An unexpected telemetry error occurred.';
+    setGlobalError(message);
+  }, []);
 
   useEffect(() => {
     const monitorHealth = async () => {
@@ -89,7 +103,10 @@ const App: React.FC = () => {
           }
           return hasChanged ? next : prev;
         });
-      } catch {}
+      } catch (err) {
+        // We don't necessarily want to spam poll errors, but we can log them
+        console.debug("Alert sync failed", err);
+      }
     };
     const intervalId = setInterval(pollStatus, 15000);
     pollStatus();
@@ -105,6 +122,24 @@ const App: React.FC = () => {
     <MemoryRouter>
       <div className="min-h-screen bg-[#0a0a0b] text-slate-100 font-sans flex flex-col overflow-hidden">
         
+        {/* Global Error Banner */}
+        {globalError && (
+          <div className="fixed top-20 left-4 right-4 z-[100] animate-in slide-in-from-top-10 duration-500">
+            <div className="bg-rose-500/10 backdrop-blur-3xl border border-rose-500/50 p-4 rounded-2xl flex items-center gap-3 shadow-2xl shadow-rose-500/10">
+              <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/20">
+                <AlertCircle className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-0.5">System Exception</p>
+                <p className="text-[13px] font-bold text-white leading-tight truncate">{globalError}</p>
+              </div>
+              <button onClick={() => setGlobalError(null)} className="p-2 text-rose-400/50 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Fixed Header */}
         <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-[#0a0a0b]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -112,10 +147,10 @@ const App: React.FC = () => {
               <Bus className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xs font-black tracking-[0.2em] uppercase text-white">Orbit Transit</h1>
+              <h1 className="text-xs font-black tracking-[0.2em] uppercase text-white">SG BUS LIVE</h1>
               <div className="flex items-center gap-1.5 leading-none mt-0.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Live' : 'Server Syncing'}</span>
+                <div className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 animate-pulse'}`} />
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Live' : 'Server Offline'}</span>
               </div>
             </div>
           </div>
@@ -128,8 +163,8 @@ const App: React.FC = () => {
         <main className="flex-1 pt-20 pb-32 overflow-y-auto no-scrollbar" key={refreshKey}>
           <div className="max-w-xl mx-auto px-4 w-full">
             <Routes>
-              <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
-              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} />} />
+              <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
+              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
               <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} />} />
             </Routes>
           </div>

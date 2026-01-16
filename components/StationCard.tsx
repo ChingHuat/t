@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, Loader2, RefreshCw, MapPin } from 'lucide-react';
-import { fetchBusArrival } from '../services/busApi';
-import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, BusService } from '../types';
+import { Heart, Loader2, RefreshCw, MapPin, CloudRain } from 'lucide-react';
+import { fetchBusArrival, fetchWeather } from '../services/busApi';
+import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, BusService, WeatherResponse } from '../types';
 import ServiceRow from './ServiceRow';
 
 interface StationCardProps {
@@ -14,6 +14,7 @@ interface StationCardProps {
   activeAlerts: Record<string, string>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onDataLoaded?: (code: string, services: BusService[]) => void;
+  onError?: (err: any) => void;
   onlyShowPinned?: boolean;
   isFavorite?: boolean;
   showTelemetryPulse?: boolean;
@@ -21,21 +22,39 @@ interface StationCardProps {
 
 const StationCard: React.FC<StationCardProps> = ({ 
   stop, pinnedServices, toggleFavorite, onPinToggle, 
-  telegramId, activeAlerts, onAlertChange, onDataLoaded, 
+  telegramId, activeAlerts, onAlertChange, onDataLoaded, onError,
   onlyShowPinned, isFavorite, showTelemetryPulse 
 }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
+  const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async (isManual = false) => {
     if (isManual) setRefreshing(true);
     else if (!data) setLoading(true);
+    
     try {
-      const res = await fetchBusArrival(stop.code);
-      setData(res);
-      if (onDataLoaded) onDataLoaded(stop.code, res.services);
-    } catch {} finally { setLoading(false); setRefreshing(false); }
+      // Primary data: Bus Arrivals
+      const arrivalRes = await fetchBusArrival(stop.code);
+      setData(arrivalRes);
+      if (onDataLoaded) onDataLoaded(stop.code, arrivalRes.services);
+      
+      // Secondary data: Weather Telemetry (Fail-safe)
+      try {
+        const weatherRes = await fetchWeather(stop.code);
+        setWeather(weatherRes);
+      } catch (wErr) {
+        console.debug(`Weather telemetry unavailable for ${stop.code}`);
+        setWeather(null);
+      }
+
+    } catch (err) {
+      if (onError) onError(err);
+    } finally { 
+      setLoading(false); 
+      setRefreshing(false); 
+    }
   };
 
   useEffect(() => { 
@@ -54,13 +73,15 @@ const StationCard: React.FC<StationCardProps> = ({
     return data.services;
   }, [data, onlyShowPinned, pinnedServices, stop.code]);
 
+  const isRaining = weather && weather.rain_mm > 0;
+
   if (onlyShowPinned && filteredServices.length === 0) return null;
 
   return (
     <div className="mb-8 animate-in fade-in duration-500 last:mb-0">
       {/* Station Header */}
       <div className="flex items-end justify-between mb-4 px-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
              {showTelemetryPulse ? (
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
@@ -69,9 +90,16 @@ const StationCard: React.FC<StationCardProps> = ({
                   {stop.code}
                 </span>
              )}
-             <h3 className="text-[15px] font-black text-white uppercase tracking-tight truncate">
-               {stop.name}
-             </h3>
+             <div className="flex items-center gap-2 min-w-0">
+               <h3 className="text-[15px] font-black text-white uppercase tracking-tight truncate">
+                 {stop.name}
+               </h3>
+               {isRaining && (
+                 <span className="flex-shrink-0 text-lg animate-bounce duration-[2000ms]" title="Rain detected at stop">
+                   🌧️
+                 </span>
+               )}
+             </div>
           </div>
           <div className="flex items-center gap-1.5 opacity-40">
             <MapPin className="w-3 h-3" />
@@ -81,7 +109,7 @@ const StationCard: React.FC<StationCardProps> = ({
           </div>
         </div>
         
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 ml-4">
           <button onClick={() => load(true)} className={`p-2.5 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors ${refreshing ? 'animate-spin' : ''}`}>
             <RefreshCw className="w-4.5 h-4.5" />
           </button>

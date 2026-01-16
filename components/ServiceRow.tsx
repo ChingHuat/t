@@ -32,6 +32,17 @@ const getLoadStatus = (load?: string) => {
   }
 };
 
+const getStabilityStyle = (stability?: string) => {
+  switch (stability) {
+    case 'STABLE': 
+      return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
+    case 'UNSTABLE': 
+      return 'bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.1)]';
+    default: 
+      return 'bg-white/5 text-slate-500 border-white/10';
+  }
+};
+
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showThresholds, setShowThresholds] = useState(false);
@@ -81,9 +92,9 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
 
         {/* Col 2: Telemetry Data (Center) */}
         <div className="flex-1 min-w-0 px-6 py-6 flex flex-col justify-center">
-          <div className="flex items-baseline justify-between mb-2">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-baseline gap-1.5">
-              <span className={`text-3xl font-black leading-none tracking-tighter ${getEtaColor()}`}>
+              <span className={`text-3xl font-black leading-none tracking-tighter transition-all ${getEtaColor()} ${eta1 === 'ARR' ? 'animate-pulse' : ''}`}>
                 {eta1 === 'ARR' ? 'ARR' : eta1}
               </span>
               {typeof eta1 === 'number' && (
@@ -91,7 +102,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
               )}
             </div>
             {service.stability && service.stability !== 'UNKNOWN' && (
-              <span className="text-[8px] font-black uppercase text-indigo-400/50 tracking-[0.2em]">
+              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-widest transition-all ${getStabilityStyle(service.stability)}`}>
                 {service.stability}
               </span>
             )}

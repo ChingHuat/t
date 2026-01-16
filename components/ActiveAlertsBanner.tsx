@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Loader2, Radio } from 'lucide-react';
+import { X, Loader2, BellRing } from 'lucide-react';
 import { cancelAlert } from '../services/busApi';
 
 interface ActiveAlertsBannerProps {
@@ -27,8 +27,8 @@ const ActiveAlertsBanner: React.FC<ActiveAlertsBannerProps> = ({ activeAlerts, t
   return (
     <div className="mb-10 px-1 space-y-3.5 animate-in fade-in duration-500">
       <div className="flex items-center gap-2.5">
-        <Radio className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] leading-none">Telemetry Linked</span>
+        <BellRing className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] leading-none">Alerts Alive</span>
       </div>
       <div className="flex flex-wrap gap-2.5">
         {alertKeys.map((key) => {

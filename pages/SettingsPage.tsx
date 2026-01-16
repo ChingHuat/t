@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Wifi, WifiOff, Terminal, Cpu, BellRing, Info } from 'lucide-react';
+import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info } from 'lucide-react';
 
 interface SettingsPageProps {
   telegramId: string;
@@ -23,8 +23,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
   return (
     <div className="pb-12 space-y-12 animate-in fade-in duration-500">
       <div className="px-1">
-        <h2 className="text-4xl font-black tracking-tighter text-white uppercase">Terminal</h2>
-        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-3">Node Parameters</p>
+        <h2 className="text-4xl font-black tracking-tighter text-white uppercase">Settings</h2>
+        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-3">System Configuration</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 px-1">
@@ -32,15 +32,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${apiOnline ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
             {apiOnline ? <Wifi className="w-7 h-7" /> : <WifiOff className="w-7 h-7" />}
           </div>
-          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Link Status</span>
-          <p className="text-[11px] font-black text-white uppercase tracking-tight">{apiOnline ? 'Live' : 'Off-Grid'}</p>
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Data Stream</span>
+          <p className="text-[11px] font-black text-white uppercase tracking-tight">{apiOnline ? 'Online' : 'Offline'}</p>
         </div>
         <div className="bg-[#18181b] p-7 rounded-[2rem] flex flex-col items-center text-center border border-white/5 shadow-lg">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(79,70,229,0.1)]">
-            <ShieldCheck className="w-7 h-7" />
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(79,70,229,0.1)] ${telegramId ? 'bg-indigo-600/10 text-indigo-400' : 'bg-slate-800 text-slate-600'}`}>
+            <BellRing className="w-7 h-7" />
           </div>
-          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Security</span>
-          <p className="text-[11px] font-black text-white uppercase tracking-tight">{telegramId ? 'Active' : 'Standby'}</p>
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Alert Link</span>
+          <p className="text-[11px] font-black text-white uppercase tracking-tight">{telegramId ? 'Linked' : 'Not Set'}</p>
         </div>
       </div>
 
@@ -49,9 +49,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         
         <div className="flex items-center gap-4 mb-10">
            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-             <BellRing className="w-6 h-6 text-indigo-400" />
+             <Bell className="w-6 h-6 text-indigo-400" />
            </div>
-           <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Protocol Gateway</h3>
+           <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Notification Setup</h3>
         </div>
 
         <div className="space-y-6">
@@ -61,13 +61,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
               placeholder="ENTER TELEGRAM ID"
               className="w-full px-14 py-6 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-600/40 transition-all text-lg font-bold text-white placeholder:text-slate-800 shadow-inner"
             />
-            <Terminal className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
+            <MessageSquare className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
           </div>
           <button 
             onClick={handleSave}
             className={`w-full py-6 rounded-2xl font-black text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-2xl ${saved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'}`}
           >
-            {saved ? 'LINK ESTABLISHED' : 'SYNC IDENTITY'}
+            {saved ? 'ALERT LINKED' : 'LINK TELEGRAM'}
           </button>
         </div>
 
@@ -75,13 +75,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
            <div className="flex gap-4">
               <Info className="w-5 h-5 text-slate-700 shrink-0 mt-0.5" />
               <p className="text-[12px] text-slate-500 font-bold leading-relaxed tracking-tight">
-                Alerts are dispatched via secure Telegram bridge. Interface with <span className="text-indigo-400">@userinfobot</span> to retrieve your ID.
+                Alerts are sent to your Telegram account. Message <span className="text-indigo-400">@userinfobot</span> to get your ID.
               </p>
            </div>
            <button 
              onClick={() => window.open('https://t.me/TransitAI_bot', '_blank')}
              className="w-full py-5 bg-white/5 rounded-2xl text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 active:scale-95 transition-all border border-white/5"
            >
+             <Send className="w-4 h-4" />
              Open System Bot
            </button>
         </div>
@@ -90,7 +91,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
       <div className="flex flex-col items-center gap-4 opacity-10 py-12">
          <div className="w-16 h-px bg-white" />
          <p className="text-[9px] font-black text-white uppercase tracking-[1em] text-center ml-[1em]">
-           Orbit Core v17.1
+           SG BUS LIVE v1.0
          </p>
       </div>
     </div>

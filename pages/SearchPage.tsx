@@ -13,14 +13,14 @@ interface SearchPageProps {
   telegramId: string;
   activeAlerts: Record<string, string>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
+  onError: (err: any) => void;
 }
 
 const SearchPage: React.FC<SearchPageProps> = ({ 
   favorites, pinnedServices, toggleFavorite, togglePinnedService, 
-  telegramId, activeAlerts, onAlertChange 
+  telegramId, activeAlerts, onAlertChange, onError 
 }) => {
   const [query, setQuery] = useState('');
-  const [loadingResult, setLoadingResult] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [activeStop, setActiveStop] = useState<FavoriteBusStop | null>(null);
@@ -35,13 +35,16 @@ const SearchPage: React.FC<SearchPageProps> = ({
         try {
           const json = await searchBusStops(trimmed);
           setSearchResults(Array.isArray(json?.results) ? json.results : []);
-        } catch { setSearchResults([]); } finally { setSearching(false); }
+        } catch (err) { 
+          setSearchResults([]);
+          onError(err);
+        } finally { setSearching(false); }
       }, 350);
     } else {
       setSearchResults([]);
       setSearching(false);
     }
-  }, [query]);
+  }, [query, onError]);
 
   const handleSelectStop = (stop: any) => {
     setActiveStop({ code: stop.busStopCode, name: stop.name, road: stop.road });
@@ -106,6 +109,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 telegramId={telegramId}
                 activeAlerts={activeAlerts}
                 onAlertChange={onAlertChange}
+                onError={onError}
                 showTelemetryPulse={true}
              />
            </div>

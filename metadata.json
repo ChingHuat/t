@@ -1,5 +1,5 @@
 {
-  "name": "Copy of SG Bus Arrival Pro",
+  "name": "Orbit Transit",
   "description": "A smart Singapore bus arrival tracking app with real-time ETAs, reliability metrics, and Telegram notifications for easy commuting.",
   "requestFramePermissions": [
     "geolocation"

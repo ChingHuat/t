@@ -13,11 +13,12 @@ interface FavoritesPageProps {
   telegramId: string;
   activeAlerts: Record<string, string>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
+  onError: (err: any) => void;
 }
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ 
   favorites, pinnedServices, toggleFavorite, togglePinnedService, 
-  telegramId, activeAlerts, onAlertChange 
+  telegramId, activeAlerts, onAlertChange, onError 
 }) => {
   const pinnedStopCodes = useMemo(() => Array.from(new Set(pinnedServices.map(p => p.busStopCode))), [pinnedServices]);
   
@@ -50,6 +51,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                  telegramId={telegramId}
                  activeAlerts={activeAlerts}
                  onAlertChange={onAlertChange}
+                 onError={onError}
                  onlyShowPinned={true}
                />
              ))}
@@ -90,6 +92,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                 telegramId={telegramId}
                 activeAlerts={activeAlerts}
                 onAlertChange={onAlertChange}
+                onError={onError}
               />
             ))}
           </div>
