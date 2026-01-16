@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, X, Loader2, Radio } from 'lucide-react';
+import { X, Loader2, Radio } from 'lucide-react';
 import { cancelAlert } from '../services/busApi';
 
 interface ActiveAlertsBannerProps {
@@ -21,22 +21,16 @@ const ActiveAlertsBanner: React.FC<ActiveAlertsBannerProps> = ({ activeAlerts, t
     try {
       await cancelAlert({ chatId: telegramId, alertId });
       onCancelAlert(stopCode, serviceNo, null);
-    } catch (err) {
-      console.error('Failed to cancel alert', err);
-    } finally {
-      setCancellingKey(null);
-    }
+    } catch {} finally { setCancellingKey(null); }
   };
 
   return (
-    <div className="mb-10 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="flex items-center gap-3 px-1">
-        <div className="w-6 h-6 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center">
-          <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-        </div>
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Telemetry Active</h3>
+    <div className="mb-10 px-1 space-y-3.5 animate-in fade-in duration-500">
+      <div className="flex items-center gap-2.5">
+        <Radio className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] leading-none">Telemetry Linked</span>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2.5">
         {alertKeys.map((key) => {
           const [stopCode, serviceNo] = key.split('-');
           const alertId = activeAlerts[key];
@@ -45,18 +39,18 @@ const ActiveAlertsBanner: React.FC<ActiveAlertsBannerProps> = ({ activeAlerts, t
           return (
             <div 
               key={key} 
-              className="group flex items-center gap-3 px-4 py-2.5 bg-emerald-500 text-white rounded-[1.2rem] shadow-[0_10px_20px_rgba(16,185,129,0.2)] animate-in zoom-in-95 duration-300 border border-emerald-400/50"
+              className="flex items-center gap-3 pl-4 pr-1.5 py-1.5 bg-white/5 border border-white/10 rounded-xl animate-in zoom-in-95 shadow-lg"
             >
-              <div className="flex items-center gap-2.5">
-                <span className="text-[11px] font-black bg-white/20 px-2 py-1 rounded-lg uppercase leading-none">BUS {serviceNo}</span>
-                <span className="text-[10px] font-bold tracking-tight opacity-90">STATION {stopCode}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[13px] font-black text-white tracking-tighter">{serviceNo}</span>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{stopCode}</span>
               </div>
               <button 
                 onClick={() => handleCancel(key, alertId)}
                 disabled={isCancelling}
-                className="w-7 h-7 flex items-center justify-center bg-black/10 hover:bg-black/20 rounded-lg transition-all active:scale-90"
+                className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 rounded-lg transition-all"
               >
-                {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
               </button>
             </div>
           );
