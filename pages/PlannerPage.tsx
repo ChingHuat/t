@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, Loader2, MapPin, Send, AlertCircle, Bus, Train, MoveRight, Clock, Footprints, Crosshair, ArrowUpDown } from 'lucide-react';
+import { Navigation, Loader2, MapPin, Send, AlertCircle, Bus, Train, Footprints, Crosshair, ArrowUpDown, ArrowLeft, X } from 'lucide-react';
 import { fetchOneMapRoute, searchOneMapAddress, OneMapRouteParams } from '../services/oneMapService';
 import JourneyResultCard from '../components/JourneyResultCard';
 
@@ -17,6 +17,7 @@ const JourneyPlanner: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [showResults, setShowResults] = useState(false);
 
   const [selectedMode, setSelectedMode] = useState<JourneyMode>('TRANSIT');
 
@@ -34,8 +35,6 @@ const JourneyPlanner: React.FC = () => {
 
   const [geoLoading, setGeoLoading] = useState(false);
   
-  const resultsTopRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (originSearchTimeout.current) window.clearTimeout(originSearchTimeout.current);
     const trimmed = originQuery.trim();
@@ -63,12 +62,6 @@ const JourneyPlanner: React.FC = () => {
       }, 400);
     } else { setDestSuggestions([]); }
   }, [destQuery, selectedDest]);
-
-  useEffect(() => {
-    if (result && resultsTopRef.current) {
-      resultsTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [result]);
 
   const handleMyLocation = () => {
     setGeoLoading(true);
@@ -108,12 +101,11 @@ const JourneyPlanner: React.FC = () => {
       };
       
       const response = await fetchOneMapRoute(routeParams);
-
       const ptItineraries = response.data?.plan?.itineraries;
 
       if (isPublicTransport && ptItineraries && ptItineraries.length > 0) {
         setResult(response);
-        setError(null);
+        setShowResults(true);
       } else if (!isPublicTransport && response.data?.route_summary) {
         const summary = response.data.route_summary;
         const synthesizedItinerary = {
@@ -124,15 +116,12 @@ const JourneyPlanner: React.FC = () => {
           legs: [{ mode: 'WALK', distance: summary.total_distance, duration: summary.total_time, from: { name: 'Origin' }, to: { name: 'Destination' } }]
         };
         setResult({ data: { plan: { itineraries: [synthesizedItinerary] } } });
-        setError(null);
+        setShowResults(true);
       } else {
-        setResult(null);
         setError(response.error || "No viable route found.");
       }
-
     } catch (err: any) { 
         setError(err.message); 
-        setResult(null);
     } finally { 
         setLoading(false); 
     }
@@ -141,21 +130,62 @@ const JourneyPlanner: React.FC = () => {
   const itineraries = result?.data?.plan?.itineraries || [];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-40">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-40 relative">
       
-      <div ref={resultsTopRef} className="space-y-4">
-        {itineraries.length > 0 && (
-          <div className="space-y-3">
-             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] px-2 mb-4">Journey Options</p>
-             {itineraries.map((itinerary: any, idx: number) => (
-                <JourneyResultCard key={idx} itinerary={itinerary} />
-             ))}
-          </div>
-        )}
-      </div>
+      {/* Journey Options Overlay */}
+      {showResults && (
+        <div className="fixed inset-0 z-[100] bg-[#0a0a0b] animate-in slide-in-from-right duration-500 flex flex-col">
+          {/* Overlay Header */}
+          <header className="h-16 px-6 bg-[#0a0a0b]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between sticky top-0 z-[110]">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setShowResults(false)}
+                className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-all active:scale-95 text-slate-400 hover:text-white"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">Journey Hub</h2>
+                <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Live Transit Options</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowResults(false)}
+              className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-all active:scale-95 text-slate-500"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </header>
 
-      <div className="bg-[#121215] p-6 rounded-[2rem] border border-white/5 shadow-2xl space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-[60px] rounded-full -mr-16 -mt-16" />
+          {/* Results List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-32">
+            <div className="max-w-xl mx-auto space-y-4">
+              <div className="px-2 pt-2">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-1">Route Selections</p>
+                <p className="text-[12px] font-bold text-white/40 uppercase tracking-tight">
+                  {selectedOrigin?.SEARCHVAL} <span className="mx-2">→</span> {selectedDest?.SEARCHVAL}
+                </p>
+              </div>
+              
+              {itineraries.map((itinerary: any, idx: number) => (
+                <JourneyResultCard key={idx} itinerary={itinerary} />
+              ))}
+              
+              {itineraries.length === 0 && (
+                <div className="py-20 text-center">
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No routes found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input UI */}
+      <div className="bg-[#121215] p-6 rounded-[2rem] border border-white/5 shadow-2xl space-y-6 relative overflow-visible">
+        <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-[60px] rounded-full -mr-16 -mt-16" />
+        </div>
         
         <div className="flex items-center gap-3 relative z-10">
             <div className="w-10 h-10 bg-indigo-600/10 rounded-xl flex items-center justify-center border border-indigo-500/20 shadow-lg shadow-indigo-600/5">
@@ -176,15 +206,22 @@ const JourneyPlanner: React.FC = () => {
           ))}
         </div>
 
-        <div className="space-y-1 relative z-10">
+        <div className="space-y-1 relative z-20">
           <div className="relative">
-            <input type="text" value={originQuery} onChange={(e) => { setOriginQuery(e.target.value); setSelectedOrigin(null); }} placeholder="From: Start point..." className="w-full pl-10 pr-12 py-4 bg-[#1a1a1e] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600/40 transition-all text-xs font-bold text-white placeholder:text-slate-700" />
+            <input 
+              type="text" 
+              value={originQuery} 
+              onChange={(e) => { setOriginQuery(e.target.value); setSelectedOrigin(null); }} 
+              placeholder="From: Start point..." 
+              className="w-full pl-10 pr-12 py-4 bg-[#1a1a1e] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600/40 transition-all text-xs font-bold text-white placeholder:text-slate-700" 
+            />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
               <div className="w-2 h-2 rounded-full border-2 border-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
             </div>
             <button onClick={handleMyLocation} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-600 hover:text-indigo-400 transition-colors">{geoLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crosshair className="w-3.5 h-3.5" />}</button>
+            
             {originSuggestions.length > 0 && !selectedOrigin && (
-              <div className="absolute top-full left-0 right-0 z-[60] mt-2 bg-[#1c1c21] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-52 overflow-y-auto no-scrollbar">
+              <div className="absolute top-full left-0 right-0 z-[70] mt-2 bg-[#1c1c21] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-52 overflow-y-auto no-scrollbar">
                 {originSuggestions.map((res, i) => (
                   <button key={i} onClick={() => { setSelectedOrigin(res); setOriginQuery(res.SEARCHVAL); }} className="w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5">
                     <p className="text-[10px] font-black text-white uppercase truncate">{res.SEARCHVAL}</p>
@@ -194,14 +231,25 @@ const JourneyPlanner: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="flex justify-end pr-8 -my-2 relative z-20">
+
+          <div className="flex justify-end pr-8 -my-2 relative z-30">
             <button onClick={handleSwap} className="w-8 h-8 bg-[#121215] border border-white/10 rounded-full flex items-center justify-center text-slate-500 hover:text-white shadow-xl active:scale-90 transition-all"><ArrowUpDown className="w-3.5 h-3.5" /></button>
           </div>
+
           <div className="relative">
-            <input type="text" value={destQuery} onChange={(e) => { setDestQuery(e.target.value); setSelectedDest(null); }} placeholder="To: Destination..." className="w-full pl-10 pr-4 py-4 bg-[#1a1a1e] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600/40 transition-all text-xs font-bold text-white placeholder:text-slate-700" />
-            <div className="absolute left-3 top-1/2 -translate-y-1/2"><MapPin className="w-3.5 h-3.5 text-rose-500" strokeWidth={3} /></div>
+            <input 
+              type="text" 
+              value={destQuery} 
+              onChange={(e) => { setDestQuery(e.target.value); setSelectedDest(null); }} 
+              placeholder="To: Destination..." 
+              className="w-full pl-10 pr-4 py-4 bg-[#1a1a1e] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600/40 transition-all text-xs font-bold text-white placeholder:text-slate-700" 
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <MapPin className="w-3.5 h-3.5 text-rose-500" strokeWidth={3} />
+            </div>
+            
             {destSuggestions.length > 0 && !selectedDest && (
-              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#1c1c21] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-52 overflow-y-auto no-scrollbar">
+              <div className="absolute top-full left-0 right-0 z-[70] mt-2 bg-[#1c1c21] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-52 overflow-y-auto no-scrollbar">
                 {destSuggestions.map((res, i) => (
                   <button key={i} onClick={() => { setSelectedDest(res); setDestQuery(res.SEARCHVAL); }} className="w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5">
                     <p className="text-[10px] font-black text-white uppercase truncate">{res.SEARCHVAL}</p>
@@ -213,7 +261,11 @@ const JourneyPlanner: React.FC = () => {
           </div>
         </div>
 
-        <button onClick={handlePlanJourney} disabled={loading || !destQuery || !originQuery} className="w-full py-5 bg-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-[0.3em] text-white shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition-all disabled:opacity-40 flex items-center justify-center gap-2 relative z-10">
+        <button 
+          onClick={handlePlanJourney} 
+          disabled={loading || !destQuery || !originQuery} 
+          className="w-full py-5 bg-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-[0.3em] text-white shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition-all disabled:opacity-40 flex items-center justify-center gap-2 relative z-10"
+        >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-3.5 h-3.5" /> Plan Journey</>}
         </button>
       </div>

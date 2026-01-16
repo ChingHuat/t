@@ -151,9 +151,19 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-          <button onClick={() => setRefreshKey(k => k + 1)} className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-all active:scale-95">
-            <RefreshCw className="w-4 h-4 text-slate-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setRefreshKey(k => k + 1)} className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-all active:scale-95">
+              <RefreshCw className="w-4 h-4 text-slate-400" />
+            </button>
+            <NavLink 
+              to="/settings" 
+              className={({ isActive }) => 
+                `w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
+              }
+            >
+              <Cpu className="w-4 h-4" />
+            </NavLink>
+          </div>
         </header>
 
         <main className="flex-1 pt-20 pb-32 overflow-y-auto no-scrollbar" key={refreshKey}>
@@ -176,9 +186,6 @@ const App: React.FC = () => {
           </NavLink>
           <NavLink to="/planner" className={navClasses}>
             <Navigation className="w-6 h-6" />
-          </NavLink>
-          <NavLink to="/settings" className={navClasses}>
-            <Cpu className="w-6 h-6" />
           </NavLink>
         </nav>
       </div>

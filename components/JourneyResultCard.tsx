@@ -6,6 +6,22 @@ interface JourneyResultCardProps {
   itinerary: any;
 }
 
+const MRT_THEMES: Record<string, { label: string; color: string }> = {
+  'NS': { label: 'NSL', color: '#D42E12' }, // Red
+  'EW': { label: 'EWL', color: '#009645' }, // Green
+  'NE': { label: 'NEL', color: '#891181' }, // Purple
+  'CC': { label: 'CCL', color: '#F9A21A' }, // Orange
+  'DT': { label: 'DTL', color: '#005EC4' }, // Blue
+  'TE': { label: 'TEL', color: '#9D5B25' }, // Brown
+  'BP': { label: 'BPL', color: '#748477' }, // LRT Gray
+  'STC': { label: 'SKL', color: '#748477' }, // Sengkang LRT
+  'PTC': { label: 'PGL', color: '#748477' }, // Punggol LRT
+};
+
+const getTrainTheme = (routeShortName: string) => {
+  return MRT_THEMES[routeShortName] || { label: routeShortName || 'MRT', color: '#008d36' };
+};
+
 const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -52,30 +68,38 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Walk Only</span>
                </div>
             ) : (
-              transportSequence.map((leg: any, idx: number) => (
-                <React.Fragment key={idx}>
-                  <div className="flex items-center gap-1.5">
-                    {leg.mode === 'BUS' ? (
-                      <div className="flex items-center gap-1">
-                        <Bus className="w-4 h-4 text-slate-500" strokeWidth={1.5} />
-                        <span className="bg-[#1a73e8] text-white px-2 py-0.5 rounded text-[11px] font-black min-w-[32px] text-center shadow-lg shadow-blue-900/20">
-                          {leg.routeShortName}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <Train className="w-4 h-4 text-slate-500" strokeWidth={1.5} />
-                        <span className="bg-[#008d36] text-white px-2 py-0.5 rounded text-[11px] font-black min-w-[32px] text-center shadow-lg shadow-emerald-900/20">
-                          {leg.routeShortName || 'MRT'}
-                        </span>
-                      </div>
+              transportSequence.map((leg: any, idx: number) => {
+                const isBus = leg.mode === 'BUS';
+                const theme = !isBus ? getTrainTheme(leg.routeShortName) : null;
+                
+                return (
+                  <React.Fragment key={idx}>
+                    <div className="flex items-center gap-1.5">
+                      {isBus ? (
+                        <div className="flex items-center gap-1">
+                          <Bus className="w-4 h-4 text-slate-500" strokeWidth={1.5} />
+                          <span className="bg-[#1a73e8] text-white px-2 py-0.5 rounded text-[11px] font-black min-w-[32px] text-center shadow-lg shadow-blue-900/20">
+                            {leg.routeShortName}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Train className="w-4 h-4 text-slate-500" strokeWidth={1.5} />
+                          <span 
+                            style={{ backgroundColor: theme?.color }}
+                            className="text-white px-2 py-0.5 rounded text-[11px] font-black min-w-[32px] text-center shadow-lg"
+                          >
+                            {theme?.label}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {idx < transportSequence.length - 1 && (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-700 -rotate-90" strokeWidth={3} />
                     )}
-                  </div>
-                  {idx < transportSequence.length - 1 && (
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-700 -rotate-90" strokeWidth={3} />
-                  )}
-                </React.Fragment>
-              ))
+                  </React.Fragment>
+                );
+              })
             )}
           </div>
 
@@ -124,19 +148,26 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
 
              const stops = get(leg, 'intermediateStops.length', 0);
              const isBus = leg.mode === 'BUS';
+             const theme = !isBus ? getTrainTheme(leg.routeShortName) : null;
 
              return (
                <div key={index} className="flex gap-4">
                  <div className="w-6 flex flex-col items-center shrink-0">
-                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg ${isBus ? 'bg-[#1a73e8] shadow-blue-500/10' : 'bg-[#008d36] shadow-emerald-500/10'}`}>
+                   <div 
+                     style={{ backgroundColor: isBus ? '#1a73e8' : theme?.color }}
+                     className={`w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg`}
+                   >
                      {isBus ? <Bus className="w-3.5 h-3.5" /> : <Train className="w-3.5 h-3.5" />}
                    </div>
-                   {!isLastLeg && <div className={`w-px flex-1 my-2 ${isBus ? 'bg-blue-500/10' : 'bg-emerald-500/10'}`} />}
+                   {!isLastLeg && <div className={`w-px flex-1 my-2`} style={{ backgroundColor: isBus ? '#1a73e820' : `${theme?.color}20` }} />}
                  </div>
                  <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 text-white text-[10px] font-black rounded ${isBus ? 'bg-[#1a73e8]' : 'bg-[#008d36]'}`}>
-                          {leg.routeShortName}
+                        <span 
+                          style={{ backgroundColor: isBus ? '#1a73e8' : theme?.color }}
+                          className={`px-2 py-0.5 text-white text-[10px] font-black rounded`}
+                        >
+                          {isBus ? leg.routeShortName : theme?.label}
                         </span>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                           {leg.agencyName || (isBus ? 'Bus Service' : 'Rail Network')}
@@ -146,7 +177,10 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                        <p className="text-[11px] font-bold text-white leading-snug">Board: <span className="text-slate-400 font-bold ml-1">{get(leg, 'from.name')}</span></p>
                        <p className="text-[11px] font-bold text-white leading-snug">Alight: <span className="text-slate-400 font-bold ml-1">{get(leg, 'to.name')}</span></p>
                        <div className="pt-2 flex items-center gap-1.5 border-t border-white/5 mt-1">
-                          <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${isBus ? 'text-blue-400' : 'text-emerald-400'}`}>
+                          <span 
+                            style={{ color: isBus ? '#60a5fa' : theme?.color }}
+                            className={`text-[8px] font-black uppercase tracking-[0.2em]`}
+                          >
                             {stops} {isBus ? 'Stops' : 'Stations'} Enroute
                           </span>
                        </div>
