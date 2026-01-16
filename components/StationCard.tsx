@@ -57,11 +57,11 @@ const StationCard: React.FC<StationCardProps> = ({
   if (onlyShowPinned && filteredServices.length === 0) return null;
 
   return (
-    <div className="mb-10 animate-in fade-in duration-500 last:mb-0">
+    <div className="mb-8 animate-in fade-in duration-500 last:mb-0">
       {/* Station Header */}
-      <div className="flex items-end justify-between mb-4 px-1">
+      <div className="flex items-end justify-between mb-4 px-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
              {showTelemetryPulse ? (
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
              ) : (
@@ -73,9 +73,9 @@ const StationCard: React.FC<StationCardProps> = ({
                {stop.name}
              </h3>
           </div>
-          <div className="flex items-center gap-1.5 opacity-50">
+          <div className="flex items-center gap-1.5 opacity-40">
             <MapPin className="w-3 h-3" />
-            <p className="text-[10px] font-bold uppercase tracking-widest truncate">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] truncate">
               {stop.road || data?.roadName} {showTelemetryPulse ? `• ${stop.code}` : ''}
             </p>
           </div>
@@ -96,9 +96,9 @@ const StationCard: React.FC<StationCardProps> = ({
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {loading ? (
-          <div className="py-10 bg-white/[0.02] border border-white/5 border-dashed rounded-2xl flex flex-col items-center justify-center">
+          <div className="py-12 bg-white/[0.02] border border-white/5 border-dashed rounded-2xl flex flex-col items-center justify-center">
              <Loader2 className="w-6 h-6 animate-spin text-slate-700 mb-2" />
              <span className="text-[9px] font-black uppercase text-slate-700 tracking-widest">Polling Live Stream</span>
           </div>

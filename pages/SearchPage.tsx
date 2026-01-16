@@ -96,7 +96,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
 
       {activeStop && (
         <div className="animate-in slide-in-from-bottom-8 duration-700 px-1">
-           <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-6 shadow-xl">
+           <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-2.5 shadow-xl">
              <StationCard 
                 stop={activeStop}
                 pinnedServices={pinnedServices}

@@ -69,58 +69,58 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   };
 
   return (
-    <div className="relative mb-2.5 last:mb-0 group">
+    <div className="relative mb-2 last:mb-0 group">
       <div className={`flex items-stretch bg-[#1a1a1e] border border-white/5 rounded-2xl overflow-hidden shadow-md transition-all ${isPinned ? 'ring-1 ring-indigo-500/30 bg-[#1e1e24]' : ''}`}>
         
         {/* Col 1: Bus Service Identity (Left) */}
         <div className="w-16 shrink-0 flex items-center justify-center bg-white/[0.02] border-r border-white/5">
-          <span className="text-lg font-black text-white tabular-nums tracking-tighter">
+          <span className="text-xl font-black text-white tabular-nums tracking-tighter">
             {service.ServiceNo}
           </span>
         </div>
 
         {/* Col 2: Telemetry Data (Center) */}
-        <div className="flex-1 min-w-0 px-4 py-3.5 flex flex-col justify-center">
-          <div className="flex items-baseline justify-between mb-1.5">
+        <div className="flex-1 min-w-0 px-6 py-6 flex flex-col justify-center">
+          <div className="flex items-baseline justify-between mb-2">
             <div className="flex items-baseline gap-1.5">
-              <span className={`text-2xl font-black leading-none tracking-tighter ${getEtaColor()}`}>
+              <span className={`text-3xl font-black leading-none tracking-tighter ${getEtaColor()}`}>
                 {eta1 === 'ARR' ? 'ARR' : eta1}
               </span>
               {typeof eta1 === 'number' && (
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Min</span>
+                <span className="text-[11px] font-black uppercase text-slate-500 tracking-widest">Min</span>
               )}
             </div>
             {service.stability && service.stability !== 'UNKNOWN' && (
-              <span className="text-[7px] font-black uppercase text-indigo-400/50 tracking-[0.2em]">
+              <span className="text-[8px] font-black uppercase text-indigo-400/50 tracking-[0.2em]">
                 {service.stability}
               </span>
             )}
           </div>
           
           <div className="flex items-center gap-3">
-            <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${loadInfo.color}`}>
+            <div className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${loadInfo.color}`}>
               {loadInfo.label}
             </div>
-            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
-              NEXT: <span className="text-slate-200 tabular-nums font-black">{eta2 || '--'}m</span>
+            <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap uppercase tracking-widest">
+              Next: <span className="text-slate-200 tabular-nums font-black ml-1">{eta2 || '--'}m</span>
             </span>
           </div>
         </div>
 
         {/* Col 3: Action Controls (Fixed Width Right Column, Vertical Stack) */}
-        <div className="w-12 shrink-0 flex flex-col border-l border-white/5 bg-white/[0.01]">
+        <div className="w-14 shrink-0 flex flex-col border-l border-white/5 bg-white/[0.01]">
           <button 
             onClick={handleToggleAlert}
             disabled={loading}
             className={`flex-1 flex items-center justify-center border-b border-white/5 active:bg-white/10 transition-colors ${alertId ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : alertId ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : alertId ? <BellOff className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
           </button>
           <button 
             onClick={onPinToggle}
             className={`flex-1 flex items-center justify-center active:bg-white/10 transition-colors ${isPinned ? 'text-white bg-indigo-600/30' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            <Pin className={`w-4 h-4 ${isPinned ? 'fill-current text-white' : ''}`} />
+            <Pin className={`w-5 h-5 ${isPinned ? 'fill-current text-white' : ''}`} />
           </button>
         </div>
       </div>
@@ -130,11 +130,11 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
         <div className="absolute inset-0 z-20 bg-[#121214]/98 backdrop-blur-xl flex items-center justify-around px-3 rounded-2xl border border-indigo-500/40 animate-in fade-in zoom-in-95 duration-200">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Notify @</span>
           {[2, 5, 8, 12].map(m => (
-            <button key={m} onClick={() => handleRegister(m)} className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-600/30 text-indigo-400 text-sm font-black active:bg-indigo-600 active:text-white transition-all shadow-lg">
+            <button key={m} onClick={() => handleRegister(m)} className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-600/30 text-indigo-400 text-base font-black active:bg-indigo-600 active:text-white transition-all shadow-lg">
               {m}
             </button>
           ))}
-          <button onClick={() => setShowThresholds(false)} className="w-10 h-10 flex items-center justify-center text-slate-400"><X className="w-5 h-5" /></button>
+          <button onClick={() => setShowThresholds(false)} className="w-12 h-12 flex items-center justify-center text-slate-400"><X className="w-6 h-6" /></button>
         </div>
       )}
     </div>

@@ -40,7 +40,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
              <h2 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Priority Commute</h2>
            </div>
            
-           <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-6 shadow-xl">
+           <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-2.5 shadow-xl">
              {pinnedStops.map(stop => (
                <StationCard 
                  key={`priority-${stop.code}`}
@@ -78,7 +78,7 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
             </p>
           </div>
         ) : (
-          <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-6 shadow-xl">
+          <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-2.5 shadow-xl">
             {favorites.map(stop => (
               <StationCard 
                 key={stop.code}
