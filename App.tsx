@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X } from 'lucide-react';
+import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
+import JourneyPlanner from './pages/PlannerPage';
 import { FavoriteBusStop, FavoriteService } from './types';
 import { fetchAlertStatus, checkApiStatus } from './services/busApi';
 
@@ -32,7 +33,6 @@ const App: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  // Error Notification dismissal timer
   useEffect(() => {
     if (globalError) {
       const timer = setTimeout(() => setGlobalError(null), 6000);
@@ -104,7 +104,6 @@ const App: React.FC = () => {
           return hasChanged ? next : prev;
         });
       } catch (err) {
-        // We don't necessarily want to spam poll errors, but we can log them
         console.debug("Alert sync failed", err);
       }
     };
@@ -122,7 +121,6 @@ const App: React.FC = () => {
     <MemoryRouter>
       <div className="min-h-screen bg-[#0a0a0b] text-slate-100 font-sans flex flex-col overflow-hidden">
         
-        {/* Global Error Banner */}
         {globalError && (
           <div className="fixed top-20 left-4 right-4 z-[100] animate-in slide-in-from-top-10 duration-500">
             <div className="bg-rose-500/10 backdrop-blur-3xl border border-rose-500/50 p-4 rounded-2xl flex items-center gap-3 shadow-2xl shadow-rose-500/10">
@@ -140,7 +138,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Fixed Header */}
         <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-[#0a0a0b]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/10">
@@ -159,24 +156,26 @@ const App: React.FC = () => {
           </button>
         </header>
 
-        {/* Scrollable Container */}
         <main className="flex-1 pt-20 pb-32 overflow-y-auto no-scrollbar" key={refreshKey}>
           <div className="max-w-xl mx-auto px-4 w-full">
             <Routes>
               <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
               <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
+              <Route path="/planner" element={<JourneyPlanner />} />
               <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} />} />
             </Routes>
           </div>
         </main>
 
-        {/* Bottom Navigation */}
         <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#141417]/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
           <NavLink to="/" className={navClasses}>
             <LayoutGrid className="w-6 h-6" />
           </NavLink>
           <NavLink to="/search" className={navClasses}>
             <Search className="w-6 h-6" />
+          </NavLink>
+          <NavLink to="/planner" className={navClasses}>
+            <Navigation className="w-6 h-6" />
           </NavLink>
           <NavLink to="/settings" className={navClasses}>
             <Cpu className="w-6 h-6" />
