@@ -14,7 +14,7 @@ export const getSmartTransitAdvice = async (query: string, context: string) => {
 };
 
 /**
- * Computes a travel route in Singapore using Gemini 2.5 Flash Lite and Google Maps grounding.
+ * Computes a travel route in Singapore using Gemini 2.5 Flash and Google Maps grounding.
  * Returns steps separated by " ---> " as expected by the Planner UI.
  * 
  * Maps grounding is only supported in Gemini 2.5 series models.
@@ -46,9 +46,9 @@ export const getSmartRoute = async (origin: string, destination: string, prefs: 
     };
   }
 
-  // Use Gemini 2.5 Flash Lite as it supports Google Maps grounding and is efficient for text tasks
+  // Fix: Using gemini-2.5-flash to ensure compatibility with Maps grounding as per documentation
   const response = await ai.models.generateContent({
-    model: 'gemini-flash-lite-latest',
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config,
   });
