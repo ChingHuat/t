@@ -62,7 +62,6 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
         onAlertChange(null);
       } catch {} finally { setLoading(false); }
     } else {
-      // Check if Telegram ID exists before showing thresholds
       if (!telegramId) {
         setShowIdPrompt(true);
       } else {
@@ -91,24 +90,23 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     <div className="relative mb-2 last:mb-0 group">
       <div className={`flex items-stretch bg-[#1a1a1e] border border-white/5 rounded-2xl overflow-hidden shadow-md transition-all ${isPinned ? 'ring-1 ring-indigo-500/30 bg-[#1e1e24]' : ''}`}>
         
-        {/* Col 1: Bus Service Identity (Left) */}
-        <div className="w-16 shrink-0 flex items-center justify-center bg-white/[0.02] border-r border-white/5">
-          <span className="text-xl font-black text-white tabular-nums tracking-tighter">
-            {service.ServiceNo}
+        {/* Col 1: Arrival Telemetry (Left) - NEW POSITION */}
+        <div className="w-16 shrink-0 flex flex-col items-center justify-center bg-white/[0.03] border-r border-white/5 py-4">
+          <span className={`text-2xl font-black tabular-nums tracking-tighter leading-none ${getEtaColor()} ${eta1 === 'ARR' ? 'animate-pulse' : ''}`}>
+            {eta1}
           </span>
+          {typeof eta1 === 'number' && (
+            <span className="text-[7px] font-black uppercase text-slate-500 tracking-[0.2em] mt-1.5">Minutes</span>
+          )}
         </div>
 
-        {/* Col 2: Telemetry Data (Center) */}
+        {/* Col 2: Identity & Secondary Data (Center) - NEW POSITION */}
         <div className="flex-1 min-w-0 px-6 py-6 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-3xl font-black leading-none tracking-tighter transition-all ${getEtaColor()} ${eta1 === 'ARR' ? 'animate-pulse' : ''}`}>
-                {eta1 === 'ARR' ? 'ARR' : eta1}
-              </span>
-              {typeof eta1 === 'number' && (
-                <span className="text-[11px] font-black uppercase text-slate-500 tracking-widest">Min</span>
-              )}
-            </div>
+          <div className="flex items-center justify-between mb-2.5">
+            {/* Bus Service Number increased by 10% (from 20px/xl to 22px) */}
+            <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
+              {service.ServiceNo}
+            </span>
             {service.stability && service.stability !== 'UNKNOWN' && (
               <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-widest transition-all ${getStabilityStyle(service.stability)}`}>
                 {service.stability}
