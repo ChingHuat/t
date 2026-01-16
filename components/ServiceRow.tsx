@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Bell, BellOff, Loader2, X, Pin } from 'lucide-react';
+import { Bell, BellOff, Loader2, X, Pin, AlertCircle, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert } from '../services/busApi';
 
@@ -46,6 +47,8 @@ const getStabilityStyle = (stability?: string) => {
 const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showThresholds, setShowThresholds] = useState(false);
+  const [showIdPrompt, setShowIdPrompt] = useState(false);
+  const navigate = useNavigate();
   
   const eta1 = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
   const eta2 = getMinutes(service.NextBus2);
@@ -59,7 +62,12 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
         onAlertChange(null);
       } catch {} finally { setLoading(false); }
     } else {
-      setShowThresholds(true);
+      // Check if Telegram ID exists before showing thresholds
+      if (!telegramId) {
+        setShowIdPrompt(true);
+      } else {
+        setShowThresholds(true);
+      }
     }
   };
 
@@ -118,7 +126,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           </div>
         </div>
 
-        {/* Col 3: Action Controls (Fixed Width Right Column, Vertical Stack) */}
+        {/* Col 3: Action Controls */}
         <div className="w-14 shrink-0 flex flex-col border-l border-white/5 bg-white/[0.01]">
           <button 
             onClick={handleToggleAlert}
@@ -146,6 +154,33 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             </button>
           ))}
           <button onClick={() => setShowThresholds(false)} className="w-12 h-12 flex items-center justify-center text-slate-400"><X className="w-6 h-6" /></button>
+        </div>
+      )}
+
+      {/* Missing ID Prompt Overlay */}
+      {showIdPrompt && (
+        <div className="absolute inset-0 z-30 bg-[#0a0a0c]/95 backdrop-blur-2xl flex items-center px-6 rounded-2xl border border-amber-500/30 animate-in slide-in-from-bottom-2 duration-300 shadow-2xl">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 mr-4">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+          </div>
+          <div className="flex-1 min-w-0 mr-2">
+            <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-0.5">Configuration Required</p>
+            <p className="text-[11px] font-bold text-white leading-tight">Link your Telegram ID in Settings to enable live arrival alerts.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate('/settings')}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+            >
+              Setup <ArrowRight className="w-3 h-3" />
+            </button>
+            <button 
+              onClick={() => setShowIdPrompt(false)}
+              className="p-2 text-slate-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>

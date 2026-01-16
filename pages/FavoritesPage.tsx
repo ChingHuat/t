@@ -33,6 +33,9 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
 
   return (
     <div className="pb-12">
+      {/* System Notifications moved to top */}
+      <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
+
       {/* Priority Section: Grouped Pinned Services */}
       {pinnedServices.length > 0 && (
         <section className="mb-14 animate-in slide-in-from-top-4 duration-500">
@@ -58,9 +61,6 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
            </div>
         </section>
       )}
-
-      {/* System Notifications */}
-      <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
 
       {/* Saved Hubs Section */}
       <section>

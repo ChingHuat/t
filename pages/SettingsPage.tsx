@@ -86,7 +86,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         </div>
       </div>
 
-      {/* Telegram Setup (Now on Top) */}
+      {/* Telegram Setup */}
       <div className="bg-[#131316] p-10 rounded-[2.5rem] border border-white/10 mx-1 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/5 blur-[80px] rounded-full -mr-20 -mt-20" />
         
@@ -215,14 +215,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-4 opacity-10 py-12">
-         <div className="w-16 h-px bg-white" />
+      <div className="flex flex-col items-center gap-4 py-12">
+         <div className="w-16 h-px bg-white/20" />
          <div className="flex flex-col items-center gap-1.5">
-           <p className="text-[9px] font-black text-white uppercase tracking-[1em] text-center ml-[1em]">
+           <p className="text-[9px] font-black text-slate-400 uppercase tracking-[1em] text-center ml-[1em]">
              SG BUS LIVE v1.0
            </p>
-           <p className="text-[8px] font-bold text-white uppercase tracking-[0.4em] text-center ml-[0.4em]">
-             Handcrafted by Jacky Lai
+           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] text-center ml-[0.4em]">
+             Handcrafted by <span className="text-indigo-400/80">Jacky Lai</span>
            </p>
          </div>
       </div>
