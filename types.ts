@@ -55,7 +55,9 @@ export interface JourneyStep {
   type: "WALK" | "BUS" | "MRT" | "RAIL" | "SUBWAY" | "TRAM";
   service?: string;
   from: string;
+  fromBusStopCode?: string;
   to: string;
+  toBusStopCode?: string;
   stops?: number;
   minutes: number;
   meters?: number;

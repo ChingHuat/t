@@ -1,5 +1,5 @@
 
-import { JourneyResponse } from '../types';
+import { JourneyResponse, JourneyStep } from '../types';
 
 const BASE_URL = "https://bus.pingthecloud.xyz";
 
@@ -42,7 +42,6 @@ export class BackendError extends Error {
 
 /**
  * Fetches multiple route options from the backend.
- * Now handles 'routes', 'itineraries', and 'plan.itineraries' formats.
  */
 export const fetchBackendJourney = async (params: JourneyParams): Promise<JourneyResult> => {
   const query = new URLSearchParams({
@@ -106,7 +105,6 @@ export const fetchBackendJourney = async (params: JourneyParams): Promise<Journe
     if (Array.isArray(responsePayload)) {
       items = responsePayload;
     } else if (responsePayload.routes && Array.isArray(responsePayload.routes)) {
-      // HANDLE THE "routes" KEY FROM YOUR SAMPLE JSON
       items = responsePayload.routes;
     } else if (responsePayload.itineraries && Array.isArray(responsePayload.itineraries)) {
       items = responsePayload.itineraries;
@@ -116,8 +114,25 @@ export const fetchBackendJourney = async (params: JourneyParams): Promise<Journe
       items = responsePayload.data;
     }
 
+    // ENHANCEMENT: Transform items and capture stop codes
+    const mappedItems = items.map(itinerary => ({
+      ...itinerary,
+      steps: (itinerary.steps || itinerary.legs || []).map((step: any) => {
+        // Aggressively capture stop codes from the new backend format
+        const fromCode = step.fromBusStopCode || step.fromCode || step.stopCode || step.fromStopId;
+        const toCode = step.toBusStopCode || step.toCode || step.endStopCode;
+        
+        return {
+          ...step,
+          type: (['SUBWAY', 'RAIL', 'TRAM', 'METRO', 'MRT'].includes(step.type?.toUpperCase())) ? 'MRT' : step.type,
+          fromBusStopCode: fromCode ? String(fromCode).match(/\d{5}/)?.[0] : undefined,
+          toBusStopCode: toCode ? String(toCode).match(/\d{5}/)?.[0] : undefined
+        } as JourneyStep;
+      })
+    }));
+
     return { 
-      data: { itineraries: items } as JourneyResponse, 
+      data: { itineraries: mappedItems } as JourneyResponse, 
       debug: debugInfo 
     };
 

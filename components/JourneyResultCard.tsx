@@ -1,11 +1,84 @@
 
-import React, { useState, useMemo } from 'react';
-import { Bus, Train, Footprints, ChevronDown, ChevronUp, Clock, DollarSign, ChevronRight, MapPin } from 'lucide-react';
-import { Itinerary } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Footprints, ChevronDown, ChevronUp, Clock, DollarSign, ChevronRight, MapPin, Wifi, Loader2 } from 'lucide-react';
+import { Itinerary, JourneyStep } from '../types';
+import { fetchBusArrival } from '../services/busApi';
 
 interface JourneyResultCardProps {
   itinerary: Itinerary; 
 }
+
+/**
+ * Sub-component to fetch and display live ETA for a specific bus leg
+ */
+const LiveBusStepEta: React.FC<{ step: JourneyStep; compact?: boolean }> = ({ step, compact = false }) => {
+  const [liveEta, setLiveEta] = useState<number | 'ARR' | 'N/A' | '...' | null>(null);
+
+  // Extract clean service number (e.g., "88" from "SBST BUS 88")
+  const serviceNo = useMemo(() => {
+    if (!step.service) return null;
+    const match = step.service.match(/\d+[A-Z]?/i);
+    return match ? match[0] : null;
+  }, [step.service]);
+
+  const loadLiveEta = async () => {
+    let stopCode = step.fromBusStopCode;
+    if (!stopCode) {
+      const match = step.from?.match(/\d{5}/);
+      if (match) stopCode = match[0];
+    }
+
+    if (!stopCode || !serviceNo) {
+      setLiveEta('N/A');
+      return;
+    }
+
+    if (liveEta === null) setLiveEta('...');
+
+    try {
+      const res = await fetchBusArrival(stopCode);
+      const service = res.services.find(s => s.ServiceNo === serviceNo);
+      if (service) {
+        const etaValue = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
+        setLiveEta(etaValue as any);
+      } else {
+        setLiveEta('N/A');
+      }
+    } catch (err) {
+      console.debug("Live ETA polling failed", err);
+      setLiveEta('N/A');
+    }
+  };
+
+  useEffect(() => {
+    loadLiveEta();
+    const timer = setInterval(loadLiveEta, 30000); 
+    return () => clearInterval(timer);
+  }, [step.fromBusStopCode, step.from, serviceNo]);
+
+  if (liveEta === null || liveEta === 'N/A') return null;
+
+  if (compact) {
+    return (
+      <span className="ml-1 px-1 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/20 text-[9px] font-black text-emerald-400 tabular-nums animate-in fade-in zoom-in-95 duration-300">
+        {liveEta === '...' ? (
+          <Loader2 className="w-2 h-2 animate-spin" />
+        ) : (
+          liveEta === 'ARR' ? 'ARR' : `${liveEta}m`
+        )}
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in duration-300">
+      <Wifi className={`w-2.5 h-2.5 text-emerald-500 ${liveEta !== '...' ? 'animate-pulse' : ''}`} />
+      <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest tabular-nums">
+        {liveEta === '...' ? 'POLLING' : liveEta === 'ARR' ? 'ARRIVING' : `${liveEta} MIN`}
+      </span>
+    </div>
+  );
+};
 
 const getMrtInfo = (serviceName: string = "") => {
   const name = serviceName.toUpperCase();
@@ -31,8 +104,6 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
 
     const summary = itinerary.summary;
     const fare = itinerary.fare || "$ 2.02"; 
-    
-    // Use walkMeters from the summary object as provided in the JSON
     const totalWalkMeters = summary.walkMeters || 0;
     
     const now = new Date();
@@ -54,10 +125,11 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
   return (
     <div className="bg-[#1a1a1e] rounded-[2.2rem] border border-white/5 shadow-2xl mb-4 overflow-hidden transition-all duration-300 hover:border-white/10">
       <div className="p-6 pb-5">
+        {/* Horizontal Flow Summary */}
         <div className="flex items-center justify-between gap-3 mb-7">
           <div className="flex-1 min-w-0">
             <div 
-              className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1"
+              className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1"
               style={{ 
                 maskImage: 'linear-gradient(to right, black 94%, transparent 100%)',
                 WebkitMaskImage: 'linear-gradient(to right, black 94%, transparent 100%)'
@@ -69,24 +141,28 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                 const isMrt = step.type === 'MRT';
                 const isWalk = step.type === 'WALK';
 
+                // Extract clean number for compact display
+                const cleanedBusNo = isBus ? (step.service?.match(/\d+[A-Z]?/i)?.[0] || '') : null;
+
                 return (
                   <React.Fragment key={idx}>
                     <div className="flex items-center shrink-0">
                       {isBus && (
-                        <div className="flex items-center gap-1 bg-white/5 pr-2 pl-1 py-1 rounded-[0.9rem] border border-white/5 shadow-inner">
-                          <Bus className="w-3 h-3 text-indigo-400" />
-                          <span className="text-[12px] font-black text-white tabular-nums">
-                            {step.service?.replace(/[^0-9]/g, '') || 'Bus'}
+                        <div className="flex items-center gap-1.5 bg-white/5 pr-2 pl-2 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
+                          <span className="text-sm">🚍</span>
+                          <span className="text-[12px] font-black text-white tabular-nums tracking-tighter">
+                            {cleanedBusNo}
                           </span>
+                          <LiveBusStepEta step={step} compact={true} />
                         </div>
                       )}
                       {isMrt && (
-                        <div className="flex items-center gap-1 bg-white/5 pr-1 pl-1 py-1 rounded-[0.9rem] border border-white/5 shadow-inner">
-                          <Train className="w-3 h-3 text-emerald-400" />
+                        <div className="flex items-center gap-1.5 bg-white/5 pr-1.5 pl-1.5 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
+                          <span className="text-sm">🚆</span>
                           {(() => {
                             const info = getMrtInfo(step.service);
                             return (
-                              <span className={`px-1 py-0.5 ${info.color} text-white text-[8px] font-black rounded-md min-w-[20px] text-center shadow-lg`}>
+                              <span className={`px-1 py-0.5 ${info.color} text-white text-[8px] font-black rounded-md min-w-[20px] text-center shadow-lg uppercase`}>
                                 {info.code}
                               </span>
                             );
@@ -101,8 +177,8 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                     </div>
                     
                     {!isLast && (
-                      <div className="flex items-center shrink-0 px-0.5">
-                        <ChevronRight className="w-3.5 h-3.5 text-[#ff0044] drop-shadow-[0_0_10px_rgba(255,0,68,0.7)]" />
+                      <div className="flex items-center shrink-0 px-1">
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-700" />
                       </div>
                     )}
                   </React.Fragment>
@@ -157,25 +233,27 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
           {steps.map((step: any, index: number) => {
             const isLast = index === steps.length - 1;
             const isMrt = step.type === 'MRT';
-            const isWalk = step.type === 'WALK';
+            const isBus = step.type === 'BUS';
             const info = isMrt ? getMrtInfo(step.service) : null;
+            const cleanedBusNo = isBus ? (step.service?.match(/\d+[A-Z]?/i)?.[0] || '') : null;
 
             return (
               <div key={index} className="flex gap-6">
                 <div className="w-9 flex flex-col items-center shrink-0">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white border border-white/10 shadow-xl ${step.type === 'BUS' ? 'bg-indigo-600' : isMrt ? info?.color : 'bg-slate-800'}`}>
-                    {step.type === 'BUS' ? <Bus className="w-4.5 h-4.5" /> : isMrt ? <Train className="w-4.5 h-4.5" /> : <Footprints className="w-4.5 h-4.5 text-slate-400" />}
+                    {step.type === 'BUS' ? <span className="text-lg">🚍</span> : isMrt ? <span className="text-lg">🚆</span> : <Footprints className="w-4.5 h-4.5 text-slate-400" />}
                   </div>
                   {!isLast && <div className="w-[1px] flex-1 bg-white/5 my-3" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2.5 mb-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.15em]">{step.type}</span>
                     {step.service && (
                       <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black text-white shadow-md ${step.type === 'BUS' ? 'bg-indigo-600' : info?.color}`}>
-                        {step.service}
+                        {step.type === 'BUS' ? `${cleanedBusNo}` : step.service}
                       </span>
                     )}
+                    {isBus && <LiveBusStepEta step={step} />}
                   </div>
                   
                   <div className="space-y-2.5">
