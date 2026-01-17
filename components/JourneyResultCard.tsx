@@ -125,70 +125,66 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
   return (
     <div className="bg-[#1a1a1e] rounded-[2.2rem] border border-white/5 shadow-2xl mb-4 overflow-hidden transition-all duration-300 hover:border-white/10">
       <div className="p-6 pb-5">
-        {/* Horizontal Flow Summary */}
-        <div className="flex items-center justify-between gap-3 mb-7">
-          <div className="flex-1 min-w-0">
-            <div 
-              className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1"
-              style={{ 
-                maskImage: 'linear-gradient(to right, black 94%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, black 94%, transparent 100%)'
-              }}
-            >
-              {steps.filter((s: any) => s.type !== 'WALK' || steps.length === 1).map((step: any, idx: number, arr: any[]) => {
-                const isLast = idx === arr.length - 1;
-                const isBus = step.type === 'BUS';
-                const isMrt = step.type === 'MRT';
-                const isWalk = step.type === 'WALK';
+        
+        {/* Header Section: Flow Summary (Wraps) + Stats (Fixed) */}
+        <div className="flex items-start justify-between gap-4 mb-8">
+          
+          {/* Wrapped Flow Summary */}
+          <div className="flex-1 flex flex-wrap items-center gap-y-2.5 gap-x-1.5">
+            {steps.filter((s: any) => s.type !== 'WALK' || steps.length === 1).map((step: any, idx: number, arr: any[]) => {
+              const isLast = idx === arr.length - 1;
+              const isBus = step.type === 'BUS';
+              const isMrt = step.type === 'MRT';
+              const isWalk = step.type === 'WALK';
 
-                // Extract clean number for compact display
-                const cleanedBusNo = isBus ? (step.service?.match(/\d+[A-Z]?/i)?.[0] || '') : null;
+              // Extract clean number for compact display
+              const cleanedBusNo = isBus ? (step.service?.match(/\d+[A-Z]?/i)?.[0] || '') : null;
 
-                return (
-                  <React.Fragment key={idx}>
-                    <div className="flex items-center shrink-0">
-                      {isBus && (
-                        <div className="flex items-center gap-1.5 bg-white/5 pr-2 pl-2 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
-                          <span className="text-sm">🚍</span>
-                          <span className="text-[12px] font-black text-white tabular-nums tracking-tighter">
-                            {cleanedBusNo}
-                          </span>
-                          <LiveBusStepEta step={step} compact={true} />
-                        </div>
-                      )}
-                      {isMrt && (
-                        <div className="flex items-center gap-1.5 bg-white/5 pr-1.5 pl-1.5 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
-                          <span className="text-sm">🚆</span>
-                          {(() => {
-                            const info = getMrtInfo(step.service);
-                            return (
-                              <span className={`px-1 py-0.5 ${info.color} text-white text-[8px] font-black rounded-md min-w-[20px] text-center shadow-lg uppercase`}>
-                                {info.code}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      {isWalk && (
-                        <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-                          <Footprints className="w-3.5 h-3.5 text-slate-500" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {!isLast && (
-                      <div className="flex items-center shrink-0 px-1">
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-700" />
+              return (
+                <React.Fragment key={idx}>
+                  <div className="flex items-center">
+                    {isBus && (
+                      <div className="flex items-center gap-1.5 bg-white/5 pr-2 pl-1.5 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
+                        <span className="text-sm">🚍</span>
+                        <span className="text-[12px] font-black text-white tabular-nums tracking-tighter">
+                          {cleanedBusNo}
+                        </span>
+                        <LiveBusStepEta step={step} compact={true} />
                       </div>
                     )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
+                    {isMrt && (
+                      <div className="flex items-center gap-1.5 bg-white/5 pr-1.5 pl-1.5 py-1.5 rounded-[0.9rem] border border-white/5 shadow-inner">
+                        <span className="text-sm">🚆</span>
+                        {(() => {
+                          const info = getMrtInfo(step.service);
+                          return (
+                            <span className={`px-1 py-0.5 ${info.color} text-white text-[8px] font-black rounded-md min-w-[20px] text-center shadow-lg uppercase`}>
+                              {info.code}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    {isWalk && (
+                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                        <Footprints className="w-3.5 h-3.5 text-slate-500" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {!isLast && (
+                    <div className="flex items-center py-1">
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
 
-          <div className="text-right shrink-0 min-w-[72px] pl-2 border-l border-white/[0.03]">
-            <p className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none mb-0.5">
+          {/* Time & Price Stats Block - Stay Pinned to Top Right */}
+          <div className="text-right shrink-0 pt-1">
+            <p className="text-[24px] font-black text-white tabular-nums tracking-tighter leading-none mb-0.5">
               {summary.totalMinutes}
               <span className="text-[10px] text-indigo-400 font-black ml-0.5 uppercase">Min</span>
             </p>
@@ -201,6 +197,7 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
           </div>
         </div>
 
+        {/* Sub-header: Trip Metadata */}
         <div className="flex items-center justify-between mb-7 px-0.5">
           <div className="flex items-center gap-2">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -219,6 +216,7 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
           </div>
         </div>
 
+        {/* Expand/Trace Trigger */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/[0.03] border border-white/5 rounded-[1.2rem] text-[10px] font-black text-indigo-400 uppercase tracking-[0.25em] hover:bg-white/5 transition-all active:scale-[0.98] shadow-lg"
@@ -228,6 +226,7 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
         </button>
       </div>
 
+      {/* Expanded Step-by-Step View */}
       {isExpanded && (
         <div className="border-t border-white/5 bg-black/40 p-8 space-y-8 animate-in slide-in-from-top-2 duration-300">
           {steps.map((step: any, index: number) => {
