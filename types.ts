@@ -1,5 +1,4 @@
 
-
 export type Drift = "DOWN" | "UP" | "STABLE" | "UNKNOWN";
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
 export type Stability = "STABLE" | "UNSTABLE" | "UNKNOWN";
@@ -17,8 +16,6 @@ export interface BusService {
   NextBus: BusArrivalInfo;
   NextBus2: BusArrivalInfo;
   NextBus3: BusArrivalInfo;
-  // Fix: Added "Arr" to the eta type to permit comparisons in the UI components (e.g., ServiceRow.tsx) 
-  // and align with the logic that handles both numeric minutes and "Arriving" status.
   eta: number | "NA" | "Arr";
   drift: Drift;
   confidence: Confidence;
@@ -44,6 +41,8 @@ export interface FavoriteBusStop {
   code: string;
   name: string;
   road?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface FavoriteService {
@@ -52,6 +51,30 @@ export interface FavoriteService {
   serviceNo: string;
 }
 
+export interface JourneyStep {
+  type: "WALK" | "BUS" | "MRT" | "RAIL";
+  service?: string;
+  from: string;
+  to: string;
+  stops?: number;
+  minutes: number;
+}
+
+export interface Itinerary {
+  summary: {
+    totalMinutes: number;
+    walkMinutes: number;
+    transferCount: number;
+    modes: string[];
+  };
+  steps: JourneyStep[];
+}
+
+export interface JourneyResponse {
+  itineraries: Itinerary[];
+}
+
+// Added missing alert-related interfaces
 export interface AlertRequest {
   chatId: string;
   busStopCode: string;
@@ -66,22 +89,16 @@ export interface CancelAlertRequest {
 
 export interface AlertResponse {
   alertId: string;
-  status: string;
-}
-
-export interface AlertStatus {
-  id: string;
-  busStopCode: string;
-  serviceNo: string;
-  threshold: number;
-  firedStages: {
-    ready: boolean;
-    leave: boolean;
-    arrived: boolean;
-  };
-  createdAt: number;
 }
 
 export interface AlertStatusResponse {
-  alerts: AlertStatus[];
+  alerts: {
+    id: string;
+    busStopCode: string;
+    serviceNo: string;
+    threshold: number;
+    firedStages: {
+      arrived: boolean;
+    };
+  }[];
 }

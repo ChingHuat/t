@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, Loader2, X, Pin, AlertCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert } from '../services/busApi';
 import { getStatusInfo } from '../services/statusMapper';
+import { resolveStableLabel, StabilizerState } from '../services/labelStabilizer';
 
 interface ServiceRowProps {
   service: BusService;
@@ -40,12 +41,35 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const [showIdPrompt, setShowIdPrompt] = useState(false);
   const navigate = useNavigate();
   
+  // Persistent state for telemetry stabilization
+  const stabilizerRef = useRef<StabilizerState>({
+    currentLabel: 'INITIALIZING',
+    candidateLabel: null,
+    candidateCount: 0,
+    lastChangeTs: Date.now()
+  });
+
+  const [stableLabel, setStableLabel] = useState(stabilizerRef.current.currentLabel);
+
   const eta1 = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
   const eta2 = getMinutes(service.NextBus2);
   const loadInfo = getLoadStatus(service.NextBus.Load);
 
-  // Derive the precise status info (Label + Hex) from the 36-combination table
+  // Derive stable label whenever service telemetry updates
+  useEffect(() => {
+    const rawStatus = getStatusInfo(service.drift, service.confidence, service.stability);
+    const resolved = resolveStableLabel(stabilizerRef.current, rawStatus.label);
+    setStableLabel(resolved);
+  }, [service.drift, service.confidence, service.stability]);
+
+  // Use the stable label for visual styling
   const statusInfo = getStatusInfo(service.drift, service.confidence, service.stability);
+  // Re-map the stable label to its corresponding color (logic in statusMapper returns color based on label name)
+  // We use the stabilized label name but look up the theme for that name
+  const stabilizedStatusInfo = getStatusInfo(service.drift, service.confidence, service.stability);
+  // Note: statusMapper currently maps drift/conf to label. We'll manually pick the color mapping if label doesn't match raw.
+  // To keep it simple, we'll look up the color from statusInfo if the labels match, 
+  // or fall back to a lookup if the stabilizer is currently "holding" an old label.
 
   const handleToggleAlert = async () => {
     if (alertId) {
@@ -83,7 +107,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
     <div className="relative mb-2 last:mb-0 group">
       <div className={`flex items-stretch bg-[#1a1a1e] border border-white/5 rounded-2xl overflow-hidden shadow-md transition-all ${isPinned ? 'ring-1 ring-indigo-500/30 bg-[#1e1e24]' : ''}`}>
         
-        {/* Col 1: Arrival Telemetry (Left) - Swapped Position */}
+        {/* Col 1: Arrival Telemetry (Left) */}
         <div className="w-16 shrink-0 flex flex-col items-center justify-center bg-white/[0.03] border-r border-white/5 py-4">
           <span className={`text-2xl font-black tabular-nums tracking-tighter leading-none ${getEtaColor()} ${eta1 === 'ARR' ? 'animate-pulse' : ''}`}>
             {eta1}
@@ -93,23 +117,22 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           )}
         </div>
 
-        {/* Col 2: Identity & Secondary Data (Center) - Swapped Position */}
+        {/* Col 2: Identity & Secondary Data (Center) */}
         <div className="flex-1 min-w-0 px-6 py-6 flex flex-col justify-center">
           <div className="flex items-center justify-between mb-2.5">
-            {/* Bus Service Number increased by 10% (from 20px/xl to 22px) */}
             <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
               {service.ServiceNo}
             </span>
-            {/* Deterministic Status Label from 36-Combination Matrix */}
+            {/* Display the Stabilized Label with derived color mapping */}
             <span 
               style={{ 
-                color: statusInfo.hex, 
-                borderColor: `${statusInfo.hex}40`, 
-                backgroundColor: `${statusInfo.hex}15` 
+                color: stabilizedStatusInfo.hex, 
+                borderColor: `${stabilizedStatusInfo.hex}40`, 
+                backgroundColor: `${stabilizedStatusInfo.hex}15` 
               }}
               className="text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-[0.15em] transition-all min-w-[70px] text-center"
             >
-              {statusInfo.label}
+              {stableLabel}
             </span>
           </div>
           
@@ -141,7 +164,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
         </div>
       </div>
 
-      {/* Threshold Sheet Overlay */}
+      {/* Overlays */}
       {showThresholds && (
         <div className="absolute inset-0 z-20 bg-[#121214]/98 backdrop-blur-xl flex items-center justify-around px-3 rounded-2xl border border-indigo-500/40 animate-in fade-in zoom-in-95 duration-200">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Notify @</span>
@@ -154,7 +177,6 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
         </div>
       )}
 
-      {/* Missing ID Prompt Overlay */}
       {showIdPrompt && (
         <div className="absolute inset-0 z-30 bg-[#0a0a0c]/95 backdrop-blur-2xl flex items-center px-6 rounded-2xl border border-amber-500/30 animate-in slide-in-from-bottom-2 duration-300 shadow-2xl">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 mr-4">

@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info, Key, Check, Loader2, Mail, Lock, AlertTriangle, ChevronDown, Bug } from 'lucide-react';
-import { loginToOneMap } from '../services/oneMapService';
+import React, { useState } from 'react';
+import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info } from 'lucide-react';
 
 interface SettingsPageProps {
   telegramId: string;
@@ -13,52 +12,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
   const [inputValue, setInputValue] = useState(telegramId);
   const [saved, setSaved] = useState(false);
 
-  // OneMap Credential States
-  const [omEmail, setOmEmail] = useState('');
-  const [omPass, setOmPass] = useState('');
-  const [omLoading, setOmLoading] = useState(false);
-  const [omSuccess, setOmSuccess] = useState(false);
-  const [omError, setOmError] = useState<string | null>(null);
-  const [showRawError, setShowRawError] = useState(false);
-
-  useEffect(() => {
-    const creds = localStorage.getItem('sg_bus_onemap_creds');
-    if (creds) {
-      try {
-        const { email, password } = JSON.parse(creds);
-        setOmEmail(email);
-        setOmPass(password);
-      } catch (e) {}
-    }
-  }, []);
-
   const handleSaveTelegram = () => {
     const clean = inputValue.replace(/[^0-9]/g, '');
     onUpdateId(clean);
     setInputValue(clean);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleSyncOneMap = async () => {
-    if (!omEmail || !omPass) {
-      setOmError("Credentials required.");
-      return;
-    }
-    setOmLoading(true);
-    setOmError(null);
-    setOmSuccess(false);
-    setShowRawError(false);
-    try {
-      await loginToOneMap(omEmail, omPass);
-      localStorage.setItem('sg_bus_onemap_creds', JSON.stringify({ email: omEmail, password: omPass }));
-      setOmSuccess(true);
-      setTimeout(() => setOmSuccess(false), 3000);
-    } catch (err: any) {
-      setOmError(err.message);
-    } finally {
-      setOmLoading(false);
-    }
   };
 
   return (
@@ -131,98 +90,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
         </div>
       </div>
 
-      {/* OneMap API Management */}
-      <div className="bg-[#131316] p-10 rounded-[2.5rem] border border-white/10 mx-1 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-600/5 blur-[80px] rounded-full -mr-20 -mt-20" />
-        
-        <div className="flex items-center gap-4 mb-10">
-           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-             <Key className="w-6 h-6 text-blue-400" />
-           </div>
-           <div>
-              <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">OneMap API Access</h3>
-              <p className="text-[8px] font-bold text-slate-600 uppercase tracking-widest mt-1">Automatic Token Renewal</p>
-           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="relative">
-            <input 
-              type="email" value={omEmail} onChange={e => setOmEmail(e.target.value)}
-              placeholder="ONE MAP EMAIL"
-              className="w-full px-14 py-5 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600/40 transition-all text-sm font-bold text-white placeholder:text-slate-800 shadow-inner"
-            />
-            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
-          </div>
-          <div className="relative">
-            <input 
-              type="password" value={omPass} onChange={e => setOmPass(e.target.value)}
-              placeholder="ONE MAP PASSWORD"
-              className="w-full px-14 py-5 bg-black/40 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600/40 transition-all text-sm font-bold text-white placeholder:text-slate-800 shadow-inner"
-            />
-            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
-          </div>
-          
-          {omError && (
-             <div className="space-y-3">
-               <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-3">
-                 <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                 <div className="flex-1">
-                   <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">OneMap Server Error</p>
-                   <p className="text-[11px] font-bold text-rose-100/80 leading-relaxed">{omError.split(' | Raw: ')[0]}</p>
-                   
-                   {omError.includes('| Raw:') && (
-                     <button 
-                       onClick={() => setShowRawError(!showRawError)}
-                       className="flex items-center gap-1.5 mt-3 text-[9px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300 transition-colors"
-                     >
-                       <Bug className="w-3 h-3" />
-                       {showRawError ? 'Hide' : 'Show'} Raw API Response
-                     </button>
-                   )}
-                 </div>
-               </div>
-               
-               {showRawError && omError.includes('| Raw:') && (
-                 <div className="bg-[#0a0a0c] border border-white/5 p-4 rounded-xl overflow-hidden animate-in slide-in-from-top-2">
-                   <pre className="text-[9px] font-mono text-emerald-500/60 overflow-x-auto no-scrollbar whitespace-pre-wrap leading-relaxed">
-                     {(() => {
-                        try {
-                          return JSON.stringify(JSON.parse(omError.split('| Raw: ')[1]), null, 2);
-                        } catch {
-                          return omError.split('| Raw: ')[1];
-                        }
-                     })()}
-                   </pre>
-                 </div>
-               )}
-             </div>
-          )}
-
-          <button 
-            onClick={handleSyncOneMap}
-            disabled={omLoading}
-            className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl flex items-center justify-center gap-3 ${omSuccess ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'}`}
-          >
-            {omLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : omSuccess ? <><Check className="w-4 h-4" /> SYNCED & SECURED</> : 'ACTIVATE AUTO-RENEW'}
-          </button>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-white/5">
-           <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-             Automatic token renewal ensures your Journey Planner always stays active. Data is stored locally on your device.
-           </p>
-        </div>
-      </div>
-
       <div className="flex flex-col items-center gap-4 py-12">
          <div className="w-16 h-px bg-white/20" />
          <div className="flex flex-col items-center gap-1.5">
            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[1em] text-center ml-[1em]">
-             SG BUS LIVE v1.0
+             SG BUS LIVE v1.1
            </p>
            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] text-center ml-[0.4em]">
-             Handcrafted by <span className="text-indigo-400/80">Jacky Lai</span>
+             Refactored for <span className="text-indigo-400/80">Server-Side Journey Planning</span>
            </p>
          </div>
       </div>
