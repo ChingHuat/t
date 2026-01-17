@@ -52,29 +52,33 @@ export interface FavoriteService {
 }
 
 export interface JourneyStep {
-  type: "WALK" | "BUS" | "MRT" | "RAIL";
+  type: "WALK" | "BUS" | "MRT" | "RAIL" | "SUBWAY" | "TRAM";
   service?: string;
   from: string;
   to: string;
   stops?: number;
   minutes: number;
+  meters?: number;
 }
 
 export interface Itinerary {
+  id?: number;
+  recommended?: boolean;
   summary: {
     totalMinutes: number;
     walkMinutes: number;
+    walkMeters: number;
     transferCount: number;
     modes: string[];
   };
   steps: JourneyStep[];
+  fare?: string;
 }
 
 export interface JourneyResponse {
   itineraries: Itinerary[];
 }
 
-// Added missing alert-related interfaces
 export interface AlertRequest {
   chatId: string;
   busStopCode: string;

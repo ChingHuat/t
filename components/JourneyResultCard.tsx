@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
-import { Bus, Train, Footprints, ChevronDown, ChevronUp, Clock, DollarSign, ChevronRight } from 'lucide-react';
+import { Bus, Train, Footprints, ChevronDown, ChevronUp, Clock, DollarSign, ChevronRight, MapPin } from 'lucide-react';
+import { Itinerary } from '../types';
 
 interface JourneyResultCardProps {
-  itinerary: any; 
+  itinerary: Itinerary; 
 }
 
-// Helper to map line names to Singapore MRT codes and colors
 const getMrtInfo = (serviceName: string = "") => {
   const name = serviceName.toUpperCase();
   if (name.includes('NORTH SOUTH')) return { code: 'NS', color: 'bg-[#ee2e24]' };
@@ -21,7 +21,6 @@ const getMrtInfo = (serviceName: string = "") => {
 const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Normalize data for the horizontal flow
   const data = useMemo(() => {
     if (!itinerary) return null;
 
@@ -30,8 +29,11 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
       type: (['SUBWAY', 'RAIL', 'TRAM', 'METRO', 'MRT'].includes(step.type?.toUpperCase())) ? 'MRT' : step.type
     }));
 
-    const summary = itinerary.summary || { totalMinutes: 0, modes: [] };
+    const summary = itinerary.summary;
     const fare = itinerary.fare || "$ 2.02"; 
+    
+    // Use walkMeters from the summary object as provided in the JSON
+    const totalWalkMeters = summary.walkMeters || 0;
     
     const now = new Date();
     const departTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -40,21 +42,19 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
       summary,
       steps,
       fare,
-      departTime
+      departTime,
+      totalWalkMeters
     };
   }, [itinerary]);
 
   if (!data) return null;
 
-  const { summary, steps, fare, departTime } = data;
+  const { summary, steps, fare, departTime, totalWalkMeters } = data;
 
   return (
     <div className="bg-[#1a1a1e] rounded-[2.2rem] border border-white/5 shadow-2xl mb-4 overflow-hidden transition-all duration-300 hover:border-white/10">
       <div className="p-6 pb-5">
-        {/* Main Info Area: Optimized for narrow mobile widths */}
         <div className="flex items-center justify-between gap-3 mb-7">
-          
-          {/* Journey Flow - High density for mobile */}
           <div className="flex-1 min-w-0">
             <div 
               className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1"
@@ -111,7 +111,6 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
             </div>
           </div>
 
-          {/* Time & Fare - Compact vertical block */}
           <div className="text-right shrink-0 min-w-[72px] pl-2 border-l border-white/[0.03]">
             <p className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none mb-0.5">
               {summary.totalMinutes}
@@ -126,7 +125,6 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
           </div>
         </div>
 
-        {/* Secondary Info Row - Tighter spacing */}
         <div className="flex items-center justify-between mb-7 px-0.5">
           <div className="flex items-center gap-2">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -134,14 +132,17 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                DEPART <span className="text-white ml-1.5 tabular-nums">{departTime}</span>
              </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2.5">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">
-              TRANSFERS <span className="text-indigo-400 ml-1.5 tabular-nums">{summary.transferCount}X</span>
+              XFER <span className="text-indigo-400 ml-1 tabular-nums">{summary.transferCount}</span>
+            </p>
+            <div className="w-[1px] h-2.5 bg-white/10" />
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">
+              WALK <span className="text-white ml-1 tabular-nums">{totalWalkMeters}M</span>
             </p>
           </div>
         </div>
 
-        {/* Action Button - More compact vertical padding */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/[0.03] border border-white/5 rounded-[1.2rem] text-[10px] font-black text-indigo-400 uppercase tracking-[0.25em] hover:bg-white/5 transition-all active:scale-[0.98] shadow-lg"
@@ -151,12 +152,12 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
         </button>
       </div>
 
-      {/* Details Timeline */}
       {isExpanded && (
         <div className="border-t border-white/5 bg-black/40 p-8 space-y-8 animate-in slide-in-from-top-2 duration-300">
           {steps.map((step: any, index: number) => {
             const isLast = index === steps.length - 1;
             const isMrt = step.type === 'MRT';
+            const isWalk = step.type === 'WALK';
             const info = isMrt ? getMrtInfo(step.service) : null;
 
             return (
@@ -181,26 +182,32 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
                     <div className="flex items-start gap-2.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-slate-800 mt-1.5 shrink-0" />
                       <p className="text-[12px] font-bold text-slate-500 leading-tight">
-                        Node: <span className="text-slate-100">{step.from}</span>
+                        From: <span className="text-slate-100">{step.from}</span>
                       </p>
                     </div>
                     {step.to && (
                       <div className="flex items-start gap-2.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-800 mt-1.5 shrink-0" />
                         <p className="text-[12px] font-bold text-slate-500 leading-tight">
-                          Alight: <span className="text-slate-100">{step.to}</span>
+                          To: <span className="text-slate-100">{step.to}</span>
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center gap-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
                     <div className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 flex items-center gap-1.5">
                        <Clock className="w-2.5 h-2.5 text-indigo-400" />
                        <span className="text-[9px] font-black text-white uppercase tabular-nums tracking-widest">{step.minutes} Min</span>
                     </div>
+                    {step.meters !== undefined && (
+                      <div className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 flex items-center gap-1.5">
+                         <MapPin className="w-2.5 h-2.5 text-rose-500" />
+                         <span className="text-[9px] font-black text-white uppercase tabular-nums tracking-widest">{step.meters}M</span>
+                      </div>
+                    )}
                     {step.stops !== undefined && (
-                      <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.15em]">{step.stops} Intervals</p>
+                      <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.15em]">{step.stops} Stops</p>
                     )}
                   </div>
                 </div>
