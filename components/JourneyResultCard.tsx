@@ -52,60 +52,67 @@ const JourneyResultCard: React.FC<JourneyResultCardProps> = ({ itinerary }) => {
     <div className="bg-[#1a1a1e] rounded-[2.5rem] border border-white/5 shadow-2xl mb-4 overflow-hidden transition-all duration-300 hover:border-white/10">
       <div className="p-7">
         {/* Main Info Area: Flow on Left, Stats on Right */}
-        <div className="flex justify-between items-start gap-4 mb-8">
+        <div className="flex items-center justify-between gap-6 mb-8">
           
-          {/* Journey Flow Container - Scrollable on mobile if too long */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 flex-1">
-            {steps.filter((s: any) => s.type !== 'WALK' || steps.length === 1).map((step: any, idx: number, arr: any[]) => {
-              const isLast = idx === arr.length - 1;
-              const isBus = step.type === 'BUS';
-              const isMrt = step.type === 'MRT';
-              const isWalk = step.type === 'WALK';
+          {/* Journey Flow Container - Scrollable with mask to prevent overlap */}
+          <div className="relative flex-1 min-w-0">
+            <div 
+              className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"
+              style={{ 
+                maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)'
+              }}
+            >
+              {steps.filter((s: any) => s.type !== 'WALK' || steps.length === 1).map((step: any, idx: number, arr: any[]) => {
+                const isLast = idx === arr.length - 1;
+                const isBus = step.type === 'BUS';
+                const isMrt = step.type === 'MRT';
+                const isWalk = step.type === 'WALK';
 
-              return (
-                <React.Fragment key={idx}>
-                  <div className="flex items-center shrink-0">
-                    {isBus && (
-                      <div className="flex items-center gap-2 bg-white/5 pr-3 pl-2 py-1.5 rounded-2xl border border-white/5 shadow-inner">
-                        <Bus className="w-4 h-4 text-indigo-400" />
-                        <span className="text-[14px] font-black text-white tabular-nums">
-                          {step.service?.replace(/[^0-9]/g, '') || 'Bus'}
-                        </span>
-                      </div>
-                    )}
-                    {isMrt && (
-                      <div className="flex items-center gap-2 bg-white/5 pr-2 pl-2 py-1.5 rounded-2xl border border-white/5 shadow-inner">
-                        <Train className="w-4 h-4 text-emerald-400" />
-                        {(() => {
-                          const info = getMrtInfo(step.service);
-                          return (
-                            <span className={`px-2 py-0.5 ${info.color} text-white text-[10px] font-black rounded-lg min-w-[28px] text-center shadow-lg shadow-black/40`}>
-                              {info.code}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
-                    {isWalk && (
-                      <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
-                        <Footprints className="w-5 h-5 text-slate-500" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Arrow Indicator between segments */}
-                  {!isLast && (
-                    <div className="flex items-center justify-center px-0.5 shrink-0">
-                      <MoveRight className="w-4 h-4 text-rose-600/60 drop-shadow-[0_0_5px_rgba(225,29,72,0.4)]" />
+                return (
+                  <React.Fragment key={idx}>
+                    <div className="flex items-center shrink-0">
+                      {isBus && (
+                        <div className="flex items-center gap-2 bg-white/5 pr-3 pl-2 py-1.5 rounded-2xl border border-white/5 shadow-inner">
+                          <Bus className="w-4 h-4 text-indigo-400" />
+                          <span className="text-[14px] font-black text-white tabular-nums">
+                            {step.service?.replace(/[^0-9]/g, '') || 'Bus'}
+                          </span>
+                        </div>
+                      )}
+                      {isMrt && (
+                        <div className="flex items-center gap-2 bg-white/5 pr-2 pl-2 py-1.5 rounded-2xl border border-white/5 shadow-inner">
+                          <Train className="w-4 h-4 text-emerald-400" />
+                          {(() => {
+                            const info = getMrtInfo(step.service);
+                            return (
+                              <span className={`px-2 py-0.5 ${info.color} text-white text-[10px] font-black rounded-lg min-w-[28px] text-center shadow-lg shadow-black/40`}>
+                                {info.code}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      {isWalk && (
+                        <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                          <Footprints className="w-5 h-5 text-slate-500" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
+                    
+                    {!isLast && (
+                      <div className="flex items-center justify-center px-0.5 shrink-0">
+                        <MoveRight className="w-4 h-4 text-rose-600/60 drop-shadow-[0_0_5px_rgba(225,29,72,0.4)]" />
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Time & Fare - Aligned Right */}
-          <div className="text-right shrink-0">
+          {/* Time & Fare - Solidly placed on the right */}
+          <div className="text-right shrink-0 min-w-[80px]">
             <p className="text-[26px] font-black text-white tabular-nums tracking-tighter leading-none mb-1">
               {summary.totalMinutes}
               <span className="text-[11px] text-indigo-400 font-black ml-1 uppercase">Min</span>
