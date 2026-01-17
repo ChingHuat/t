@@ -44,8 +44,17 @@ const SearchPage: React.FC<SearchPageProps> = ({
             latitude: parseFloat(res.latitude || res.LATITUDE),
             longitude: parseFloat(res.longitude || res.LONGITUDE)
           }));
+
+          // Deduplicate results based on Name and Road to prevent UI clutter
+          const uniqueResultsMap = new Map();
+          mapped.forEach((item: any) => {
+            const uniqueKey = (item.busStopCode ? item.busStopCode : `${item.name}-${item.road}`).toLowerCase().trim();
+            if (!uniqueResultsMap.has(uniqueKey)) {
+              uniqueResultsMap.set(uniqueKey, item);
+            }
+          });
           
-          setSearchResults(mapped);
+          setSearchResults(Array.from(uniqueResultsMap.values()));
         } catch (err) { 
           setSearchResults([]);
           onError(err);
@@ -58,14 +67,11 @@ const SearchPage: React.FC<SearchPageProps> = ({
   }, [query, onError]);
 
   const handleSelectStop = (stop: any) => {
-    // If it's a general address, we can't show a StationCard (it needs a code for arrival data)
-    // but we can save it as a favorite hub if needed. For now, limit to transit stops or tagged locations.
     if (stop.busStopCode) {
       setActiveStop({ code: stop.busStopCode, name: stop.name, road: stop.road });
       setSearchResults([]);
       setQuery('');
     } else {
-      // It's a general address - maybe show an info message or redirect to planner
       console.debug("Selected non-transit address in discovery");
       setQuery(stop.name);
       setSearchResults([]);

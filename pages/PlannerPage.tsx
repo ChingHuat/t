@@ -49,7 +49,15 @@ const JourneyPlanner: React.FC = () => {
       originTimeout.current = window.setTimeout(async () => {
         try {
           const res = await searchAddresses(trimmed);
-          setOriginResults(res.results || []);
+          const raw = res.results || [];
+          
+          // Deduplicate based on Name
+          const unique = new Map();
+          raw.forEach((item: AddressResult) => {
+            const key = item.name.toLowerCase().trim();
+            if (!unique.has(key)) unique.set(key, item);
+          });
+          setOriginResults(Array.from(unique.values()));
         } catch { setOriginResults([]); } finally { setSearchingOrigin(false); }
       }, 300);
     } else { setOriginResults([]); setSearchingOrigin(false); }
@@ -63,7 +71,15 @@ const JourneyPlanner: React.FC = () => {
       destTimeout.current = window.setTimeout(async () => {
         try {
           const res = await searchAddresses(trimmed);
-          setDestResults(res.results || []);
+          const raw = res.results || [];
+
+          // Deduplicate based on Name
+          const unique = new Map();
+          raw.forEach((item: AddressResult) => {
+            const key = item.name.toLowerCase().trim();
+            if (!unique.has(key)) unique.set(key, item);
+          });
+          setDestResults(Array.from(unique.values()));
         } catch { setDestResults([]); } finally { setSearchingDest(false); }
       }, 300);
     } else { setDestResults([]); setSearchingDest(false); }
