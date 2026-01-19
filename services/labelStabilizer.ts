@@ -2,54 +2,32 @@
 import { StatusLabel } from './statusMapper';
 
 /**
- * Severity Model: 
- * Warnings must appear fast; reassurance must be earned.
+ * Severity Model for the 6 Public Labels
  */
 const SEVERITY_MAP: Record<StatusLabel, number> = {
-  "INITIALIZING": 0,
-  "ESTIMATING": 0,
-  "RELIABLE": 1,
-  "ONTRACK": 1,
-  "IMPROVING": 1,
-  "OKAY": 1,
-  "UNCERTAIN": 1,
-  "FLUCTUATING": 2,
-  "SLOWING": 2,
-  "DELAYING": 2,
-  "DISRUPTED": 3,
   "UNRELIABLE": 3,
+  "DELAYED": 3,
+  "FLUCTUATING": 2,
+  "OKAY": 1,
+  "RELIABLE": 0,
+  "ON TRACK": 0,
 };
 
 /**
- * Minimum Hold Time (s): How long we must stay in the current severity 
- * before allowed to downgrade.
+ * Recovery Constraints
  */
 const HOLD_TIMES: Record<number, number> = {
-  0: 60,
-  1: 90,
-  2: 30,
-  3: 0,
+  0: 90, // Reaching peak status requires long stability
+  1: 60, // OKAY state hold
+  2: 30, // Fluctuating hold
+  3: 0,  // Escalation is immediate (0ms hold)
 };
 
-/**
- * Confirmation Counts: How many consecutive polls the new candidate
- * must be seen before it is accepted as a downgrade.
- */
 const CONFIRMATIONS: Record<number, number> = {
-  0: 2,
-  1: 3,
-  2: 2,
-  3: 1,
-};
-
-/**
- * Intermediate step defaults when descending severity.
- */
-const DEFAULT_FOR_SEVERITY: Record<number, StatusLabel> = {
-  3: "UNRELIABLE",
-  2: "DELAYING",
-  1: "OKAY",
-  0: "ESTIMATING"
+  0: 3, // 3 polls to reach RELIABLE/ON TRACK
+  1: 2, 
+  2: 1, 
+  3: 1, // 1 poll to trigger UNRELIABLE/DELAYED
 };
 
 export interface StabilizerState {
@@ -61,12 +39,6 @@ export interface StabilizerState {
 
 /**
  * Resolves a stable user-facing label from a potentially noisy candidate.
- * 
- * Rules:
- * 1. Immediate escalation if candidate is higher severity.
- * 2. Slow recovery (Hold time + confirmations) if candidate is lower severity.
- * 3. Stepwise de-escalation (pass through intermediate severities).
- * 4. No label flicker/oscillation.
  */
 export const resolveStableLabel = (
   state: StabilizerState,
@@ -76,16 +48,15 @@ export const resolveStableLabel = (
   const currentSeverity = SEVERITY_MAP[state.currentLabel];
   const candidateSeverity = SEVERITY_MAP[candidateLabel];
 
-  // 1. Initialization
+  // 1. Initialization (Safe start at OKAY or higher if immediate)
   if (!state.currentLabel) {
     state.currentLabel = candidateLabel;
     state.lastChangeTs = now;
-    state.candidateCount = 0;
-    state.candidateLabel = null;
     return candidateLabel;
   }
 
-  // 2. Immediate Escalation
+  // 2. Fast Escalation
+  // If the new label is worse, we update instantly
   if (candidateSeverity > currentSeverity) {
     state.currentLabel = candidateLabel;
     state.lastChangeTs = now;
@@ -94,19 +65,16 @@ export const resolveStableLabel = (
     return candidateLabel;
   }
 
-  // 3. Staying at same severity
-  if (candidateSeverity === currentSeverity) {
-    // We allow switching within same severity immediately for drift-based variations (e.g. SLOWING to DELAYING)
-    state.currentLabel = candidateLabel;
+  // 3. No Change
+  if (candidateLabel === state.currentLabel) {
     state.candidateCount = 0;
     state.candidateLabel = null;
-    // Note: lastChangeTs is NOT updated here to ensure hold time for potential recovery is preserved
-    return candidateLabel;
+    return state.currentLabel;
   }
 
-  // 4. Slow Recovery (Downgrade)
+  // 4. Earned Recovery (Downgrade)
   if (candidateSeverity < currentSeverity) {
-    // Track the recovery candidate
+    // Track the candidate
     if (state.candidateLabel !== candidateLabel) {
       state.candidateLabel = candidateLabel;
       state.candidateCount = 1;
@@ -114,34 +82,34 @@ export const resolveStableLabel = (
       state.candidateCount += 1;
     }
 
-    const holdTimeElapsed = (now - state.lastChangeTs) / 1000;
-    const minHoldTime = HOLD_TIMES[currentSeverity];
-    const requiredConfirmations = CONFIRMATIONS[candidateSeverity];
+    const elapsed = (now - state.lastChangeTs) / 1000;
+    const requiredHold = HOLD_TIMES[currentSeverity];
+    const requiredConf = CONFIRMATIONS[candidateSeverity];
 
-    // Check if both duration and confirmation requirements are met
-    if (holdTimeElapsed >= minHoldTime && state.candidateCount >= requiredConfirmations) {
-      // Rule: Improvements must pass through intermediate severities.
-      // We only drop by ONE severity level per step.
-      const targetSeverity = currentSeverity - 1;
-      
-      let nextLabel: StatusLabel;
-      if (SEVERITY_MAP[candidateLabel] === targetSeverity) {
-        // If the candidate IS the target severity, use it
-        nextLabel = candidateLabel;
+    if (elapsed >= requiredHold && state.candidateCount >= requiredConf) {
+      // RULE: Stepwise Descent
+      // If we are at 3 (UNRELIABLE) and want to go to 0, we MUST pass through 1 (OKAY)
+      if (currentSeverity === 3 && candidateSeverity === 0) {
+        state.currentLabel = "OKAY";
       } else {
-        // Otherwise, use a safe intermediate default
-        nextLabel = DEFAULT_FOR_SEVERITY[targetSeverity];
+        state.currentLabel = candidateLabel;
       }
-
-      state.currentLabel = nextLabel;
+      
       state.lastChangeTs = now;
       state.candidateCount = 0;
       state.candidateLabel = null;
-      return nextLabel;
+      return state.currentLabel;
     }
 
-    // Still in hold/confirmation period: return current
+    // Requirements not met, keep current
     return state.currentLabel;
+  }
+
+  // Within same severity level (e.g. RELIABLE <-> ON TRACK)
+  // We allow horizontal switching with small confirmation but no hold time
+  if (candidateSeverity === currentSeverity) {
+      state.currentLabel = candidateLabel;
+      return candidateLabel;
   }
 
   return state.currentLabel;

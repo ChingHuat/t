@@ -4,7 +4,7 @@ import { Bell, BellOff, Loader2, X, Pin, AlertCircle, ArrowRight } from 'lucide-
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert } from '../services/busApi';
-import { getStatusInfo } from '../services/statusMapper';
+import { getStatusTheme, mapTelemetryToStatus } from '../services/statusMapper';
 import { resolveStableLabel, StabilizerState } from '../services/labelStabilizer';
 
 interface ServiceRowProps {
@@ -41,9 +41,8 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const [showIdPrompt, setShowIdPrompt] = useState(false);
   const navigate = useNavigate();
   
-  // Persistent state for telemetry stabilization
   const stabilizerRef = useRef<StabilizerState>({
-    currentLabel: 'INITIALIZING',
+    currentLabel: mapTelemetryToStatus(service.confidence, service.drift, service.stability),
     candidateLabel: null,
     candidateCount: 0,
     lastChangeTs: Date.now()
@@ -51,25 +50,18 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
 
   const [stableLabel, setStableLabel] = useState(stabilizerRef.current.currentLabel);
 
+  useEffect(() => {
+    const rawLabel = mapTelemetryToStatus(service.confidence, service.drift, service.stability);
+    const resolved = resolveStableLabel(stabilizerRef.current, rawLabel);
+    setStableLabel(resolved);
+  }, [service.drift, service.confidence, service.stability]);
+
   const eta1 = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
   const eta2 = getMinutes(service.NextBus2);
   const loadInfo = getLoadStatus(service.NextBus.Load);
 
-  // Derive stable label whenever service telemetry updates
-  useEffect(() => {
-    const rawStatus = getStatusInfo(service.drift, service.confidence, service.stability);
-    const resolved = resolveStableLabel(stabilizerRef.current, rawStatus.label);
-    setStableLabel(resolved);
-  }, [service.drift, service.confidence, service.stability]);
-
-  // Use the stable label for visual styling
-  const statusInfo = getStatusInfo(service.drift, service.confidence, service.stability);
-  // Re-map the stable label to its corresponding color (logic in statusMapper returns color based on label name)
-  // We use the stabilized label name but look up the theme for that name
-  const stabilizedStatusInfo = getStatusInfo(service.drift, service.confidence, service.stability);
-  // Note: statusMapper currently maps drift/conf to label. We'll manually pick the color mapping if label doesn't match raw.
-  // To keep it simple, we'll look up the color from statusInfo if the labels match, 
-  // or fall back to a lookup if the stabilizer is currently "holding" an old label.
+  // Look up visual theme for the stabilized label
+  const theme = getStatusTheme(stableLabel);
 
   const handleToggleAlert = async () => {
     if (alertId) {
@@ -123,14 +115,13 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
               {service.ServiceNo}
             </span>
-            {/* Display the Stabilized Label with derived color mapping */}
             <span 
               style={{ 
-                color: stabilizedStatusInfo.hex, 
-                borderColor: `${stabilizedStatusInfo.hex}40`, 
-                backgroundColor: `${stabilizedStatusInfo.hex}15` 
+                color: theme.hex, 
+                borderColor: `${theme.hex}40`, 
+                backgroundColor: `${theme.hex}15` 
               }}
-              className="text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-[0.15em] transition-all min-w-[70px] text-center"
+              className="text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-[0.15em] transition-all min-w-[75px] text-center"
             >
               {stableLabel}
             </span>

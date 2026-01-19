@@ -2,73 +2,72 @@
 import { Drift, Confidence, Stability } from '../types';
 
 export type StatusLabel = 
-  | "RELIABLE" | "ONTRACK" | "IMPROVING" | "OKAY" 
-  | "SLOWING" | "DELAYING" | "ESTIMATING" | "UNCERTAIN" 
-  | "FLUCTUATING" | "DISRUPTED" | "UNRELIABLE" | "INITIALIZING";
+  | "ON TRACK"
+  | "RELIABLE"
+  | "OKAY"
+  | "FLUCTUATING"
+  | "DELAYED"
+  | "UNRELIABLE";
 
 export interface StatusInfo {
   label: StatusLabel;
   hex: string;
 }
 
-interface StatusMapping extends StatusInfo {
-  drift: Drift;
-  confidence: Confidence;
-  stability: Stability;
-}
+/**
+ * Maps raw backend telemetry to exactly 6 public status labels.
+ * Evaluates in strict priority order (top-down).
+ */
+export const mapTelemetryToStatus = (
+  confidence: Confidence,
+  drift: Drift,
+  stability: Stability
+): StatusLabel => {
+  // 1. UNRELIABLE (Priority 1)
+  if (confidence === "LOW") return "UNRELIABLE";
 
-const statusTable: StatusMapping[] = [
-  { "drift": "DOWN", "confidence": "HIGH", "stability": "STABLE", "label": "RELIABLE", "hex": "#16A34A" },
-  { "drift": "STABLE", "confidence": "HIGH", "stability": "STABLE", "label": "ONTRACK", "hex": "#16A34A" },
-  { "drift": "UP", "confidence": "HIGH", "stability": "STABLE", "label": "SLOWING", "hex": "#FB923C" },
-  { "drift": "UNKNOWN", "confidence": "HIGH", "stability": "STABLE", "label": "ONTRACK", "hex": "#16A34A" },
+  // 2. DELAYED (Priority 2)
+  if (drift === "UP") return "DELAYED";
 
-  { "drift": "DOWN", "confidence": "HIGH", "stability": "UNSTABLE", "label": "FLUCTUATING", "hex": "#F97316" },
-  { "drift": "STABLE", "confidence": "HIGH", "stability": "UNSTABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
-  { "drift": "UP", "confidence": "HIGH", "stability": "UNSTABLE", "label": "DISRUPTED", "hex": "#DC2626" },
-  { "drift": "UNKNOWN", "confidence": "HIGH", "stability": "UNSTABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
+  // 3. FLUCTUATING (Priority 3)
+  if (stability === "UNSTABLE") return "FLUCTUATING";
 
-  { "drift": "DOWN", "confidence": "HIGH", "stability": "UNKNOWN", "label": "IMPROVING", "hex": "#22C55E" },
-  { "drift": "STABLE", "confidence": "HIGH", "stability": "UNKNOWN", "label": "ONTRACK", "hex": "#16A34A" },
-  { "drift": "UP", "confidence": "HIGH", "stability": "UNKNOWN", "label": "DELAYING", "hex": "#F97316" },
-  { "drift": "UNKNOWN", "confidence": "HIGH", "stability": "UNKNOWN", "label": "ESTIMATING", "hex": "#9CA3AF" },
+  // 4. RELIABLE (Priority 4)
+  if (confidence === "HIGH" && drift === "DOWN" && stability === "STABLE") {
+    return "RELIABLE";
+  }
 
-  { "drift": "DOWN", "confidence": "MEDIUM", "stability": "STABLE", "label": "IMPROVING", "hex": "#22C55E" },
-  { "drift": "STABLE", "confidence": "MEDIUM", "stability": "STABLE", "label": "OKAY", "hex": "#EAB308" },
-  { "drift": "UP", "confidence": "MEDIUM", "stability": "STABLE", "label": "SLOWING", "hex": "#FB923C" },
-  { "drift": "UNKNOWN", "confidence": "MEDIUM", "stability": "STABLE", "label": "ESTIMATING", "hex": "#9CA3AF" },
+  // 5. ON TRACK (Priority 5)
+  if (
+    confidence === "HIGH" &&
+    stability === "STABLE" &&
+    (drift === "STABLE" || drift === "UNKNOWN")
+  ) {
+    return "ON TRACK";
+  }
 
-  { "drift": "DOWN", "confidence": "MEDIUM", "stability": "UNSTABLE", "label": "FLUCTUATING", "hex": "#F97316" },
-  { "drift": "STABLE", "confidence": "MEDIUM", "stability": "UNSTABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
-  { "drift": "UP", "confidence": "MEDIUM", "stability": "UNSTABLE", "label": "DISRUPTED", "hex": "#DC2626" },
-  { "drift": "UNKNOWN", "confidence": "MEDIUM", "stability": "UNSTABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
+  // 6. OKAY (Default/Priority 6)
+  // Maps Medium confidence and Stable/Unknown stability
+  return "OKAY";
+};
 
-  { "drift": "DOWN", "confidence": "MEDIUM", "stability": "UNKNOWN", "label": "IMPROVING", "hex": "#22C55E" },
-  { "drift": "STABLE", "confidence": "MEDIUM", "stability": "UNKNOWN", "label": "OKAY", "hex": "#EAB308" },
-  { "drift": "UP", "confidence": "MEDIUM", "stability": "UNKNOWN", "label": "DELAYING", "hex": "#F97316" },
-  { "drift": "UNKNOWN", "confidence": "MEDIUM", "stability": "UNKNOWN", "label": "ESTIMATING", "hex": "#9CA3AF" },
+/**
+ * Returns the theme colors for the public status labels.
+ */
+export const getStatusTheme = (label: StatusLabel): StatusInfo => {
+  const themes: Record<StatusLabel, string> = {
+    "UNRELIABLE": "#DC2626", // Red-600
+    "DELAYED": "#F97316",    // Orange-500
+    "FLUCTUATING": "#FACC15", // Yellow-400
+    "RELIABLE": "#16A34A",   // Green-600
+    "ON TRACK": "#10B981",   // Emerald-500
+    "OKAY": "#94A3B8",       // Slate-400
+  };
+  return { label, hex: themes[label] };
+};
 
-  { "drift": "DOWN", "confidence": "LOW", "stability": "STABLE", "label": "FLUCTUATING", "hex": "#F97316" },
-  { "drift": "STABLE", "confidence": "LOW", "stability": "STABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
-  { "drift": "UP", "confidence": "LOW", "stability": "STABLE", "label": "UNRELIABLE", "hex": "#B91C1C" },
-  { "drift": "UNKNOWN", "confidence": "LOW", "stability": "STABLE", "label": "UNCERTAIN", "hex": "#FACC15" },
-
-  { "drift": "DOWN", "confidence": "LOW", "stability": "UNSTABLE", "label": "FLUCTUATING", "hex": "#F97316" },
-  { "drift": "STABLE", "confidence": "LOW", "stability": "UNSTABLE", "label": "UNRELIABLE", "hex": "#B91C1C" },
-  { "drift": "UP", "confidence": "LOW", "stability": "UNSTABLE", "label": "FLUCTUATING", "hex": "#F97316" },
-  { "drift": "UNKNOWN", "confidence": "LOW", "stability": "UNSTABLE", "label": "UNRELIABLE", "hex": "#B91C1C" },
-
-  { "drift": "DOWN", "confidence": "LOW", "stability": "UNKNOWN", "label": "UNCERTAIN", "hex": "#FACC15" },
-  { "drift": "STABLE", "confidence": "LOW", "stability": "UNKNOWN", "label": "UNRELIABLE", "hex": "#B91C1C" },
-  { "drift": "UP", "confidence": "LOW", "stability": "UNKNOWN", "label": "UNRELIABLE", "hex": "#B91C1C" },
-  { "drift": "UNKNOWN", "confidence": "LOW", "stability": "UNKNOWN", "label": "INITIALIZING", "hex": "#6B7280" }
-];
-
+// Legacy support for existing components
 export const getStatusInfo = (drift: Drift, confidence: Confidence, stability: Stability): StatusInfo => {
-  const match = statusTable.find(s => 
-    s.drift === drift && 
-    s.confidence === confidence && 
-    s.stability === stability
-  );
-  return match ? { label: match.label, hex: match.hex } : { label: "INITIALIZING", hex: "#6B7280" };
+  const label = mapTelemetryToStatus(confidence, drift, stability);
+  return getStatusTheme(label);
 };
