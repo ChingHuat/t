@@ -88,29 +88,20 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Fix: Scoped 'next' and missing 'serverAlerts' in syncAlerts.
   const syncAlerts = useCallback(async () => {
     if (!telegramId) return;
     
-    console.group(`%c[Backend Trace] Alert Sync Triggered @ ${new Date().toLocaleTimeString()}`, "color: #6366f1; font-weight: bold;");
-    
     try {
-      // 1. Fetch Live Alert Status
+      // 1. Fetch Live Alert Status (/alerts/status)
       const response = await fetchAlertStatus(telegramId);
-      console.log("%cLive Alerts Response:", "color: #10b981; font-weight: bold;", response);
-      
       const serverAlerts = response.alerts || [];
       const nextLive: Record<string, string> = {};
       
       serverAlerts.forEach(a => {
-         // DETERMINISTIC COMPLETION RULE: ready && leave && arrived
          const isCompleted = a.firedStages.ready && a.firedStages.leave && a.firedStages.arrived;
-         
          if (!isCompleted) {
            const key = `${String(a.busStopCode)}-${String(a.serviceNo)}`;
            nextLive[key] = String(a.id);
-         } else {
-           console.info(`%c[Lifecycle] Alert ${a.id} (${a.serviceNo}) marked as COMPLETED. Removed from active monitoring.`, "color: #10b981; font-style: italic;");
          }
       });
 
@@ -118,18 +109,13 @@ const App: React.FC = () => {
         return JSON.stringify(nextLive) !== JSON.stringify(prev) ? nextLive : prev;
       });
 
-      // 2. Fetch Scheduled Alert Status
+      // 2. Fetch Scheduled Alert Status (/schedule-alerts/status)
       const schRes = await fetchScheduledAlertStatus(telegramId);
-      console.log("%cScheduled Alerts Response:", "color: #6366f1; font-weight: bold;", schRes);
-      
       const schAlerts = schRes.scheduledAlerts || [];
       setScheduledAlerts(schAlerts);
       
-      console.info(`%cSync Complete. Active: ${Object.keys(nextLive).length} live, ${schAlerts.length} scheduled.`, "color: #94a3b8; font-style: italic;");
     } catch (err) {
-      console.error("%cAlert Sync Failed:", "color: #ef4444; font-weight: bold;", err);
-    } finally {
-      console.groupEnd();
+      console.error("Alert Sync Failed:", err);
     }
   }, [telegramId]);
 
@@ -146,11 +132,25 @@ const App: React.FC = () => {
     }`;
 
   const totalAlertsCount = useMemo(() => {
+    // Engine Decision Rules (Non-negotiable)
+    const hasLiveAlert = Object.keys(activeAlerts).length > 0;
+    const hasScheduledButNotActivated = scheduledAlerts.some(a => a.status === "SCHEDULED");
+    
+    // Only return a count if the banner should be ON
+    if (!hasLiveAlert && !hasScheduledButNotActivated) return 0;
+
     const uniqueKeys = new Set<string>();
+    
+    // 1. Count live alerts
     Object.keys(activeAlerts).forEach(k => uniqueKeys.add(k));
+    
+    // 2. Count ONLY scheduled alerts (Excluding ACTIVE ones)
     scheduledAlerts.forEach(s => {
-      uniqueKeys.add(`${s.busStopCode}-${s.serviceNo}`);
+      if (s.status === 'SCHEDULED') {
+        uniqueKeys.add(`${s.busStopCode}-${s.serviceNo}`);
+      }
     });
+    
     return uniqueKeys.size;
   }, [activeAlerts, scheduledAlerts]);
 

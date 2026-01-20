@@ -12,11 +12,11 @@ interface AlertBannerProps {
 }
 
 interface UnifiedAlert {
-  id: string; // The primary ID of the source record (state tracking)
-  apiId: string; // The ID to pass to the API (alertId or scheduledAlertId)
+  id: string; // Internal unique ID
+  apiId: string; // ID for API calls
   stopCode: string;
   serviceNo: string;
-  type: 'LIVE_LIST' | 'SCHEDULED_PENDING';
+  type: 'LIVE' | 'SCHEDULED_PENDING';
   targetTime?: string | null;
   windowBeforeMin?: number | null;
 }
@@ -24,34 +24,37 @@ interface UnifiedAlert {
 const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts, telegramId, onUpdate }) => {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const parseKey = (key: string) => {
-    const lastDash = key.lastIndexOf('-');
-    if (lastDash === -1) return { stopCode: 'Unknown', serviceNo: key };
-    return {
-      stopCode: key.substring(0, lastDash),
-      serviceNo: key.substring(lastDash + 1)
-    };
-  };
+  // Non-negotiable Banner ON/OFF Logic
+  const hasLiveAlert = useMemo(() => Object.keys(activeAlerts).length > 0, [activeAlerts]);
+  const hasScheduledButNotActivated = useMemo(() => 
+    scheduledAlerts.some(a => a.status === "SCHEDULED"), 
+    [scheduledAlerts]
+  );
+  
+  const bannerOn = hasLiveAlert || hasScheduledButNotActivated;
 
   const allAlerts = useMemo(() => {
+    if (!bannerOn) return [];
+
     const list: UnifiedAlert[] = [];
 
-    // 1. Process Live Alerts List
-    // These are already filtered for completion (ready && leave && arrived) in App.tsx sync cycle.
+    // 1. Process Live Alerts (/alerts/status)
     Object.entries(activeAlerts).forEach(([key, alertId]) => {
-      const { stopCode, serviceNo } = parseKey(key);
+      const lastDash = key.lastIndexOf('-');
+      const stopCode = key.substring(0, lastDash);
+      const serviceNo = key.substring(lastDash + 1);
+      
       list.push({
         id: `live-${alertId}`,
         apiId: String(alertId),
         stopCode,
         serviceNo,
-        type: 'LIVE_LIST',
+        type: 'LIVE',
       });
     });
 
-    // 2. Process Scheduled Alerts (ONLY PENDING)
-    // We ignore 'ACTIVE' status here because once active, the alert is managed by the live list above.
-    // This prevents "zombie" alerts from appearing after the live alert is marked completed.
+    // 2. Process Scheduled Alerts (/schedule-alerts/status)
+    // Rule: Take off if status is ACTIVE (handled by live list above)
     scheduledAlerts.forEach(s => {
       if (s.status === 'SCHEDULED') {
         list.push({
@@ -67,31 +70,19 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
     });
 
     return list.filter(alert => !processingIds.has(alert.id));
-  }, [activeAlerts, scheduledAlerts, processingIds]);
+  }, [activeAlerts, scheduledAlerts, processingIds, bannerOn]);
 
-  if (allAlerts.length === 0 && processingIds.size === 0) return null;
+  // If both conditions are false, or if we filtered out everything (e.g. during processing), turn OFF
+  if (!bannerOn || allAlerts.length === 0) return null;
 
   const handleStopAlert = async (alert: UnifiedAlert) => {
-    if (!alert.apiId || alert.apiId === 'undefined' || alert.apiId === '') {
-      console.error("Critical Error: Missing API ID for cancellation", alert);
-      return;
-    }
-
     setProcessingIds(prev => new Set(prev).add(alert.id));
     
     try {
-      if (alert.type === 'LIVE_LIST') {
-        // Use live cancellation endpoint
-        await cancelAlert({ 
-          chatId: telegramId, 
-          alertId: alert.apiId 
-        });
-      } else if (alert.type === 'SCHEDULED_PENDING') {
-        // Use scheduled cancellation endpoint
-        await cancelScheduledAlert({ 
-          chatId: telegramId, 
-          scheduledAlertId: alert.apiId 
-        });
+      if (alert.type === 'LIVE') {
+        await cancelAlert({ chatId: telegramId, alertId: alert.apiId });
+      } else {
+        await cancelScheduledAlert({ chatId: telegramId, scheduledAlertId: alert.apiId });
       }
       
       onUpdate();
@@ -110,7 +101,7 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
         next.delete(alert.id);
         return next;
       });
-      console.error(`[Alert System] Deletion failed for ${alert.serviceNo}:`, err);
+      console.error(`[Alert System] Deletion failed:`, err);
     }
   };
 
@@ -128,28 +119,28 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
     <div className="mb-10 px-1 space-y-5 animate-in fade-in duration-500">
       <div className="flex items-center gap-2.5">
         <BellRing className="w-3.5 h-3.5 text-indigo-400" />
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] leading-none">Monitoring Dashboard</span>
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] leading-none">Telemetry Dashboard</span>
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         {allAlerts.map((alert) => {
-          const isMonitoring = alert.type === 'LIVE_LIST';
+          const isLive = alert.type === 'LIVE';
           const isProcessing = processingIds.has(alert.id);
 
           return (
             <div 
               key={alert.id} 
-              className={`flex items-center gap-4 pl-5 pr-2 py-4 border rounded-[1.8rem] shadow-2xl transition-all duration-500 animate-in zoom-in-95 ${isMonitoring ? 'bg-indigo-600/10 border-indigo-500/40' : 'bg-white/5 border-white/10'}`}
+              className={`flex items-center gap-4 pl-5 pr-2 py-4 border rounded-[1.8rem] shadow-2xl transition-all duration-500 animate-in zoom-in-95 ${isLive ? 'bg-indigo-600/10 border-indigo-500/40' : 'bg-white/5 border-white/10'}`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2.5 mb-1.5">
-                  <span className={`text-[20px] font-black tabular-nums tracking-tighter leading-none ${isMonitoring ? 'text-indigo-400' : 'text-white'}`}>
+                  <span className={`text-[20px] font-black tabular-nums tracking-tighter leading-none ${isLive ? 'text-indigo-400' : 'text-white'}`}>
                     {alert.serviceNo}
                   </span>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{alert.stopCode}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isMonitoring ? (
+                  {isLive ? (
                     <>
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none">Live Telemetry Active</span>
@@ -169,18 +160,8 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
                 onClick={() => handleStopAlert(alert)}
                 disabled={isProcessing}
                 className="h-12 px-5 flex items-center justify-center bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-2xl transition-all active:scale-90 group"
-                title="Stop alert"
               >
-                <div className="flex items-center gap-2">
-                  {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <X className="w-4 h-4" />
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] hidden group-hover:block ml-1">Stop alert</span>
-                    </>
-                  )}
-                </div>
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
               </button>
             </div>
           );
