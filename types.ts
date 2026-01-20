@@ -88,9 +88,41 @@ export interface AlertRequest {
   threshold: number;
 }
 
+export interface ScheduleAlertRequest {
+  chatId: string;
+  busStopCode: string;
+  serviceNo: string;
+  targetTime: string; // ISO8601 with offset
+}
+
+export interface ScheduleAlertResponse {
+  success: boolean;
+  scheduledAlertId: string;
+  windowBeforeMin: number;
+}
+
+export interface ScheduledAlertStatus {
+  id: string;
+  busStopCode: string;
+  serviceNo: string;
+  targetTime: string;
+  windowBeforeMin: number;
+  status: "ACTIVE" | "SCHEDULED";
+  liveAlertId?: string | null;
+}
+
+export interface ScheduledAlertStatusResponse {
+  scheduledAlerts: ScheduledAlertStatus[];
+}
+
 export interface CancelAlertRequest {
   chatId: string;
   alertId: string;
+}
+
+export interface CancelScheduledAlertRequest {
+  chatId: string | number;
+  scheduledAlertId: string;
 }
 
 export interface AlertResponse {
@@ -104,7 +136,10 @@ export interface AlertStatusResponse {
     serviceNo: string;
     threshold: number;
     firedStages: {
+      ready: boolean;
+      leave: boolean;
       arrived: boolean;
     };
+    createdAt: number;
   }[];
 }

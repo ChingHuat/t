@@ -1,9 +1,8 @@
 
 import React, { useMemo } from 'react';
 import { MapPin, Star, LayoutPanelTop } from 'lucide-react';
-import { FavoriteBusStop, FavoriteService, BusService } from '../types';
+import { FavoriteBusStop, FavoriteService } from '../types';
 import StationCard from '../components/StationCard';
-import ActiveAlertsBanner from '../components/ActiveAlertsBanner';
 
 interface FavoritesPageProps {
   favorites: FavoriteBusStop[];
@@ -33,9 +32,6 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
 
   return (
     <div className="pb-12">
-      {/* System Notifications moved to top */}
-      <ActiveAlertsBanner activeAlerts={activeAlerts} telegramId={telegramId} onCancelAlert={onAlertChange} />
-
       {/* Priority Section: Grouped Pinned Services */}
       {pinnedServices.length > 0 && (
         <section className="mb-14 animate-in slide-in-from-top-4 duration-500">

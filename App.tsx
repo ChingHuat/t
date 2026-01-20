@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation } from 'lucide-react';
+import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation, Bell } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
 import JourneyPlanner from './pages/PlannerPage';
-import { FavoriteBusStop, FavoriteService } from './types';
-import { fetchAlertStatus, checkApiStatus } from './services/busApi';
+import AlertsPage from './pages/AlertsPage';
+import { FavoriteBusStop, FavoriteService, ScheduledAlertStatus } from './types';
+import { fetchAlertStatus, checkApiStatus, fetchScheduledAlertStatus } from './services/busApi';
 
 const App: React.FC = () => {
   const [favorites, setFavorites] = useState<FavoriteBusStop[]>(() => {
@@ -28,6 +29,8 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('sg_bus_active_alerts');
     return saved ? JSON.parse(saved) : {};
   });
+
+  const [scheduledAlerts, setScheduledAlerts] = useState<ScheduledAlertStatus[]>([]);
 
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -78,44 +81,78 @@ const App: React.FC = () => {
 
   const updateAlert = useCallback((stopCode: string, serviceNo: string, alertId: string | null) => {
     setAlerts(prev => {
-      const key = `${stopCode}-${serviceNo}`;
+      const key = `${String(stopCode)}-${String(serviceNo)}`;
       const next = { ...prev };
       if (alertId) next[key] = alertId; else delete next[key];
       return next;
     });
   }, []);
 
+  // Fix: Scoped 'next' and missing 'serverAlerts' in syncAlerts.
+  const syncAlerts = useCallback(async () => {
+    if (!telegramId) return;
+    
+    console.group(`%c[Backend Trace] Alert Sync Triggered @ ${new Date().toLocaleTimeString()}`, "color: #6366f1; font-weight: bold;");
+    
+    try {
+      // 1. Fetch Live Alert Status
+      const response = await fetchAlertStatus(telegramId);
+      console.log("%cLive Alerts Response:", "color: #10b981; font-weight: bold;", response);
+      
+      const serverAlerts = response.alerts || [];
+      const nextLive: Record<string, string> = {};
+      
+      serverAlerts.forEach(a => {
+         // DETERMINISTIC COMPLETION RULE: ready && leave && arrived
+         const isCompleted = a.firedStages.ready && a.firedStages.leave && a.firedStages.arrived;
+         
+         if (!isCompleted) {
+           const key = `${String(a.busStopCode)}-${String(a.serviceNo)}`;
+           nextLive[key] = String(a.id);
+         } else {
+           console.info(`%c[Lifecycle] Alert ${a.id} (${a.serviceNo}) marked as COMPLETED. Removed from active monitoring.`, "color: #10b981; font-style: italic;");
+         }
+      });
+
+      setAlerts(prev => {
+        return JSON.stringify(nextLive) !== JSON.stringify(prev) ? nextLive : prev;
+      });
+
+      // 2. Fetch Scheduled Alert Status
+      const schRes = await fetchScheduledAlertStatus(telegramId);
+      console.log("%cScheduled Alerts Response:", "color: #6366f1; font-weight: bold;", schRes);
+      
+      const schAlerts = schRes.scheduledAlerts || [];
+      setScheduledAlerts(schAlerts);
+      
+      console.info(`%cSync Complete. Active: ${Object.keys(nextLive).length} live, ${schAlerts.length} scheduled.`, "color: #94a3b8; font-style: italic;");
+    } catch (err) {
+      console.error("%cAlert Sync Failed:", "color: #ef4444; font-weight: bold;", err);
+    } finally {
+      console.groupEnd();
+    }
+  }, [telegramId]);
+
   useEffect(() => {
-    if (!telegramId || Object.keys(activeAlerts).length === 0) return;
-    const pollStatus = async () => {
-      try {
-        const response = await fetchAlertStatus(telegramId);
-        const serverAlerts = response.alerts || [];
-        setAlerts(prev => {
-          let hasChanged = false;
-          const next = { ...prev };
-          for (const [key, alertId] of Object.entries(next)) {
-            const serverAlert = serverAlerts.find(a => a.id === alertId);
-            if (!serverAlert || serverAlert.firedStages.arrived) {
-              delete next[key];
-              hasChanged = true;
-            }
-          }
-          return hasChanged ? next : prev;
-        });
-      } catch (err) {
-        console.debug("Alert sync failed", err);
-      }
-    };
-    const intervalId = setInterval(pollStatus, 15000);
-    pollStatus();
+    if (!telegramId) return;
+    const intervalId = setInterval(syncAlerts, 15000);
+    syncAlerts();
     return () => clearInterval(intervalId);
-  }, [telegramId, activeAlerts]);
+  }, [telegramId, syncAlerts]);
 
   const navClasses = ({ isActive }: { isActive: boolean }) => 
     `w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
       isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-slate-300'
     }`;
+
+  const totalAlertsCount = useMemo(() => {
+    const uniqueKeys = new Set<string>();
+    Object.keys(activeAlerts).forEach(k => uniqueKeys.add(k));
+    scheduledAlerts.forEach(s => {
+      uniqueKeys.add(`${s.busStopCode}-${s.serviceNo}`);
+    });
+    return uniqueKeys.size;
+  }, [activeAlerts, scheduledAlerts]);
 
   return (
     <MemoryRouter>
@@ -156,6 +193,19 @@ const App: React.FC = () => {
               <RefreshCw className="w-4 h-4 text-slate-400" />
             </button>
             <NavLink 
+              to="/alerts" 
+              className={({ isActive }) => 
+                `relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
+              }
+            >
+              <Bell className="w-4 h-4" />
+              {totalAlertsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg border-2 border-[#0a0a0b]">
+                  {totalAlertsCount}
+                </span>
+              )}
+            </NavLink>
+            <NavLink 
               to="/settings" 
               className={({ isActive }) => 
                 `w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
@@ -172,6 +222,7 @@ const App: React.FC = () => {
               <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
               <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
               <Route path="/planner" element={<JourneyPlanner />} />
+              <Route path="/alerts" element={<AlertsPage activeAlerts={activeAlerts} scheduledAlerts={scheduledAlerts} telegramId={telegramId} onSyncAlerts={syncAlerts} totalCount={totalAlertsCount} />} />
               <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} />} />
             </Routes>
           </div>

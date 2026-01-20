@@ -1,8 +1,28 @@
 
-import { BusStopArrivalResponse, WeatherResponse, AlertRequest, CancelAlertRequest, AlertResponse, AlertStatusResponse } from '../types';
+import { 
+  BusStopArrivalResponse, 
+  WeatherResponse, 
+  AlertRequest, 
+  CancelAlertRequest, 
+  AlertResponse, 
+  AlertStatusResponse, 
+  ScheduleAlertRequest, 
+  ScheduleAlertResponse, 
+  ScheduledAlertStatusResponse,
+  CancelScheduledAlertRequest
+} from '../types';
 
 const BASE_URL = "https://bus.pingthecloud.xyz";
 const TIMEOUT_MS = 10000;
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
 
 const secureFetch = async (url: string, options: RequestInit = {}) => {
   const controller = new AbortController();
@@ -31,7 +51,7 @@ const secureFetch = async (url: string, options: RequestInit = {}) => {
 
 export const fetchBusArrival = async (busStopCode: string): Promise<BusStopArrivalResponse> => {
   const response = await secureFetch(`${BASE_URL}/bus/${busStopCode}`);
-  if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
+  if (!response.ok) throw new ApiError(`Server responded with status ${response.status}`, response.status);
   return response.json();
 };
 
@@ -49,7 +69,7 @@ export const searchAddresses = async (query: string) => {
 
 export const fetchWeather = async (busStopCode: string): Promise<WeatherResponse> => {
   const response = await secureFetch(`${BASE_URL}/weather/rain/${busStopCode}`);
-  if (!response.ok) throw new Error('Weather data unavailable');
+  if (!response.ok) throw new ApiError('Weather data unavailable', response.status);
   return response.json();
 };
 
@@ -59,7 +79,17 @@ export const registerAlert = async (data: AlertRequest): Promise<AlertResponse> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to register alert');
+  if (!response.ok) throw new ApiError('Failed to register alert', response.status);
+  return response.json();
+};
+
+export const scheduleAlert = async (data: ScheduleAlertRequest): Promise<ScheduleAlertResponse> => {
+  const response = await secureFetch(`${BASE_URL}/schedule-alert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new ApiError('Failed to schedule alert', response.status);
   return response.json();
 };
 
@@ -69,12 +99,30 @@ export const cancelAlert = async (data: CancelAlertRequest): Promise<void> => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to cancel alert');
+  if (!response.ok) throw new ApiError(`Failed to cancel alert [${response.status}]`, response.status);
+};
+
+export const cancelScheduledAlert = async (data: CancelScheduledAlertRequest): Promise<void> => {
+  const response = await secureFetch(`${BASE_URL}/schedule-alert/cancel`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chatId: String(data.chatId),
+      scheduledAlertId: data.scheduledAlertId
+    }),
+  });
+  if (!response.ok) throw new ApiError(`Failed to cancel scheduled alert [${response.status}]`, response.status);
 };
 
 export const fetchAlertStatus = async (chatId: string): Promise<AlertStatusResponse> => {
   const response = await secureFetch(`${BASE_URL}/alerts/status?chatId=${chatId}`);
-  if (!response.ok) throw new Error('Failed to fetch alert status');
+  if (!response.ok) throw new ApiError('Failed to fetch alert status', response.status);
+  return response.json();
+};
+
+export const fetchScheduledAlertStatus = async (chatId: string): Promise<ScheduledAlertStatusResponse> => {
+  const response = await secureFetch(`${BASE_URL}/schedule-alerts/status?chatId=${chatId}`);
+  if (!response.ok) throw new ApiError('Failed to fetch scheduled alert status', response.status);
   return response.json();
 };
 

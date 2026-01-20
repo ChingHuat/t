@@ -14,6 +14,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
 
   const handleSaveTelegram = () => {
     const clean = inputValue.replace(/[^0-9]/g, '');
+    console.info(`%c[Settings] Linking Telegram ID: ${clean}. Monitoring will begin on next sync cycle...`, "color: #6366f1; font-weight: bold;");
     onUpdateId(clean);
     setInputValue(clean);
     setSaved(true);
