@@ -98,7 +98,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
              SG BUS LIVE v1.1
            </p>
            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] text-center ml-[0.4em]">
-             Refactored for <span className="text-indigo-400/80">Server-Side Journey Planning</span>
+             By <span className="text-indigo-400/80">Jacky Lai</span>
            </p>
          </div>
       </div>

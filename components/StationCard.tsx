@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, Loader2, RefreshCw, MapPin, CloudRain } from 'lucide-react';
+import { Heart, Loader2, RefreshCw, MapPin } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
 import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, BusService, WeatherResponse } from '../types';
 import ServiceRow from './ServiceRow';
@@ -30,39 +30,6 @@ const StationCard: React.FC<StationCardProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async (isManual = false) => {
-    if (isManual) setRefreshing(true);
-    else if (!data) setLoading(true);
-    
-    try {
-      // Primary data: Bus Arrivals
-      const arrivalRes = await fetchBusArrival(stop.code);
-      setData(arrivalRes);
-      if (onDataLoaded) onDataLoaded(stop.code, arrivalRes.services);
-      
-      // Secondary data: Weather Telemetry (Fail-safe)
-      try {
-        const weatherRes = await fetchWeather(stop.code);
-        setWeather(weatherRes);
-      } catch (wErr) {
-        console.debug(`Weather telemetry unavailable for ${stop.code}`);
-        setWeather(null);
-      }
-
-    } catch (err) {
-      if (onError) onError(err);
-    } finally { 
-      setLoading(false); 
-      setRefreshing(false); 
-    }
-  };
-
-  useEffect(() => { 
-    load(); 
-    const itv = setInterval(load, 30000); 
-    return () => clearInterval(itv); 
-  }, [stop.code]);
-
   const filteredServices = useMemo(() => {
     if (!data?.services) return [];
     if (onlyShowPinned) {
@@ -73,18 +40,49 @@ const StationCard: React.FC<StationCardProps> = ({
     return data.services;
   }, [data, onlyShowPinned, pinnedServices, stop.code]);
 
+  const load = async (isManual = false) => {
+    if (isManual) {
+      setRefreshing(true);
+    } else if (!data) {
+      setLoading(true);
+    }
+    
+    try {
+      const arrivalRes = await fetchBusArrival(stop.code);
+      setData(arrivalRes);
+      if (onDataLoaded) onDataLoaded(stop.code, arrivalRes.services);
+      
+      try {
+        const weatherRes = await fetchWeather(stop.code);
+        setWeather(weatherRes);
+      } catch {
+        setWeather(null);
+      }
+    } catch (err) {
+      if (onError) onError(err);
+    } finally { 
+      setLoading(false); 
+      setRefreshing(false); 
+    }
+  };
+
+  useEffect(() => { 
+    load(); 
+    const interval = setInterval(load, 30000); // Fixed 30s Polling
+    return () => clearInterval(interval);
+  }, [stop.code]);
+
   const isRaining = weather && weather.rain_mm > 0;
 
-  if (onlyShowPinned && filteredServices.length === 0) return null;
+  if (onlyShowPinned && filteredServices.length === 0 && !loading) return null;
 
   return (
     <div className="mb-8 animate-in fade-in duration-500 last:mb-0">
-      {/* Station Header */}
       <div className="flex items-end justify-between mb-4 px-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
              {showTelemetryPulse ? (
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <div className="w-2 h-2 rounded-full animate-pulse shadow-lg bg-emerald-500 shadow-emerald-500/50" />
              ) : (
                 <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-indigo-500/10">
                   {stop.code}
@@ -131,18 +129,26 @@ const StationCard: React.FC<StationCardProps> = ({
              <span className="text-[9px] font-black uppercase text-slate-700 tracking-widest">Polling Live Stream</span>
           </div>
         ) : (
-          filteredServices.map(s => (
-            <ServiceRow 
-              key={s.ServiceNo}
-              service={s}
-              busStopCode={stop.code}
-              telegramId={telegramId}
-              alertId={activeAlerts[`${stop.code}-${s.ServiceNo}`]}
-              onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
-              isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
-              onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
-            />
-          ))
+          <>
+            {filteredServices.map(s => (
+              <ServiceRow 
+                key={s.ServiceNo}
+                service={s}
+                busStopCode={stop.code}
+                telegramId={telegramId}
+                alertId={activeAlerts[`${stop.code}-${s.ServiceNo}`]}
+                onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
+                isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
+                onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
+              />
+            ))}
+            
+            <div className="flex justify-center mt-3">
+              <span className="text-[7px] font-black uppercase tracking-[0.3em] px-2 py-0.5 rounded text-slate-700">
+                Standard Sync (30s)
+              </span>
+            </div>
+          </>
         )}
       </div>
     </div>
