@@ -142,12 +142,6 @@ const StationCard: React.FC<StationCardProps> = ({
                 onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
               />
             ))}
-            
-            <div className="flex justify-center mt-3">
-              <span className="text-[7px] font-black uppercase tracking-[0.3em] px-2 py-0.5 rounded text-slate-700">
-                Standard Sync (30s)
-              </span>
-            </div>
           </>
         )}
       </div>
