@@ -69,7 +69,7 @@ const StationCard: React.FC<StationCardProps> = ({
 
   useEffect(() => { 
     load(); 
-    const interval = setInterval(load, 30000); // Fixed 30s Polling
+    const interval = setInterval(load, 15000); // Polling interval increased to 15s
     return () => clearInterval(interval);
   }, [stop.code]);
 
