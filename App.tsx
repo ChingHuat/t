@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation, Bell } from 'lucide-react';
@@ -81,7 +80,7 @@ const App: React.FC = () => {
 
   const updateAlert = useCallback((stopCode: string, serviceNo: string, alertId: string | null) => {
     setAlerts(prev => {
-      const key = `${String(stopCode)}-${String(serviceNo)}`;
+      const key = `${String(stopCode).trim()}-${String(serviceNo).trim()}`;
       const next = { ...prev };
       if (alertId) next[key] = alertId; else delete next[key];
       return next;
@@ -92,15 +91,18 @@ const App: React.FC = () => {
     if (!telegramId) return;
     
     try {
-      // 1. Fetch Live Alert Status (/alerts/status)
       const response = await fetchAlertStatus(telegramId);
       const serverAlerts = response.alerts || [];
       const nextLive: Record<string, string> = {};
       
+      console.info(`%c[Diagnostic] Polling Alerts: ${serverAlerts.length} found.`, "color: #6366f1; font-weight: bold;");
+      if (serverAlerts.length > 0) console.table(serverAlerts);
+
       serverAlerts.forEach(a => {
+         // Discard alerts that are completed from the view logic
          const isCompleted = a.firedStages.ready && a.firedStages.leave && a.firedStages.arrived;
          if (!isCompleted) {
-           const key = `${String(a.busStopCode)}-${String(a.serviceNo)}`;
+           const key = `${String(a.busStopCode).trim()}-${String(a.serviceNo).trim()}`;
            nextLive[key] = String(a.id);
          }
       });
@@ -109,9 +111,12 @@ const App: React.FC = () => {
         return JSON.stringify(nextLive) !== JSON.stringify(prev) ? nextLive : prev;
       });
 
-      // 2. Fetch Scheduled Alert Status (/schedule-alerts/status)
       const schRes = await fetchScheduledAlertStatus(telegramId);
       const schAlerts = schRes.scheduledAlerts || [];
+      
+      console.info(`%c[Diagnostic] Polling Schedules: ${schAlerts.length} found.`, "color: #10b981; font-weight: bold;");
+      if (schAlerts.length > 0) console.table(schAlerts);
+
       setScheduledAlerts(schAlerts);
       
     } catch (err) {
@@ -126,33 +131,34 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [telegramId, syncAlerts]);
 
-  const navClasses = ({ isActive }: { isActive: boolean }) => 
+  // Unified registry to tell ServiceRow if an alert (Live or Scheduled) exists
+  const unifiedAlerts = useMemo(() => {
+    const map: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }> = {};
+    
+    // Add scheduled alerts first (lower priority if live exists)
+    scheduledAlerts.forEach(s => {
+      if (s.status === 'SCHEDULED') {
+        const key = `${String(s.busStopCode).trim()}-${String(s.serviceNo).trim()}`;
+        map[key] = { id: s.id, type: 'SCHEDULED' };
+      }
+    });
+
+    // Overwrite with live alerts if they are active
+    // FIX: Cast Object.entries to explicitly handle potential 'unknown' type inference for Record values
+    (Object.entries(activeAlerts) as [string, string][]).forEach(([key, id]) => {
+      map[key] = { id, type: 'LIVE' };
+    });
+
+    return map;
+  }, [activeAlerts, scheduledAlerts]);
+
+  const totalAlertsCount = useMemo(() => Object.keys(unifiedAlerts).length, [unifiedAlerts]);
+
+  // Explicitly type props to handle potential 'unknown' type issues with NavLink callback parameters
+  const navClasses = ({ isActive }: { isActive: boolean; isPending?: boolean; isTransitioning?: boolean }): string => 
     `w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
       isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-slate-300'
     }`;
-
-  const totalAlertsCount = useMemo(() => {
-    // Engine Decision Rules (Non-negotiable)
-    const hasLiveAlert = Object.keys(activeAlerts).length > 0;
-    const hasScheduledButNotActivated = scheduledAlerts.some(a => a.status === "SCHEDULED");
-    
-    // Only return a count if the banner should be ON
-    if (!hasLiveAlert && !hasScheduledButNotActivated) return 0;
-
-    const uniqueKeys = new Set<string>();
-    
-    // 1. Count live alerts
-    Object.keys(activeAlerts).forEach(k => uniqueKeys.add(k));
-    
-    // 2. Count ONLY scheduled alerts (Excluding ACTIVE ones)
-    scheduledAlerts.forEach(s => {
-      if (s.status === 'SCHEDULED') {
-        uniqueKeys.add(`${s.busStopCode}-${s.serviceNo}`);
-      }
-    });
-    
-    return uniqueKeys.size;
-  }, [activeAlerts, scheduledAlerts]);
 
   return (
     <MemoryRouter>
@@ -194,7 +200,7 @@ const App: React.FC = () => {
             </button>
             <NavLink 
               to="/alerts" 
-              className={({ isActive }) => 
+              className={({ isActive }: { isActive: boolean }) => 
                 `relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
               }
             >
@@ -207,7 +213,7 @@ const App: React.FC = () => {
             </NavLink>
             <NavLink 
               to="/settings" 
-              className={({ isActive }) => 
+              className={({ isActive }: { isActive: boolean }) => 
                 `w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
               }
             >
@@ -219,8 +225,8 @@ const App: React.FC = () => {
         <main className="flex-1 pt-20 pb-32 overflow-y-auto no-scrollbar" key={refreshKey}>
           <div className="max-w-xl mx-auto px-4 w-full">
             <Routes>
-              <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
-              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} activeAlerts={activeAlerts} onAlertChange={updateAlert} onError={handleError} />} />
+              <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} unifiedAlerts={unifiedAlerts} onAlertChange={updateAlert} onSyncAlerts={syncAlerts} onError={handleError} />} />
+              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} unifiedAlerts={unifiedAlerts} onAlertChange={updateAlert} onSyncAlerts={syncAlerts} onError={handleError} />} />
               <Route path="/planner" element={<JourneyPlanner />} />
               <Route path="/alerts" element={<AlertsPage activeAlerts={activeAlerts} scheduledAlerts={scheduledAlerts} telegramId={telegramId} onSyncAlerts={syncAlerts} totalCount={totalAlertsCount} />} />
               <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} />} />

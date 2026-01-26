@@ -10,5 +10,6 @@ export const getSmartTransitAdvice = async (query: string, context: string) => {
     model: 'gemini-3-flash-preview',
     contents: `As a Singapore Transit Expert, answer the following query: "${query}". Context of current bus arrivals: ${context}. Keep it concise for a mobile user.`,
   });
-  return response.text;
+  // Property 'text' on GenerateContentResponse can be undefined.
+  return response.text || "I'm sorry, I couldn't generate advice at this time.";
 };

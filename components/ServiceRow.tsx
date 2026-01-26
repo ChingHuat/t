@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, Loader2, X, Pin, AlertCircle, CalendarCheck, Info, Zap, Clock, ShieldCheck, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
-import { registerAlert, cancelAlert, scheduleAlert, ApiError } from '../services/busApi';
+import { registerAlert, cancelAlert, scheduleAlert, cancelScheduledAlert, ApiError } from '../services/busApi';
 import { getStatusTheme, mapTelemetryToStatus } from '../services/statusMapper';
 import { resolveStableLabel, StabilizerState } from '../services/labelStabilizer';
 
@@ -11,10 +11,11 @@ interface ServiceRowProps {
   service: BusService;
   busStopCode: string;
   telegramId: string;
-  alertId?: string;
+  alertInfo?: { id: string, type: 'LIVE' | 'SCHEDULED' } | null;
   isPinned?: boolean;
   onPinToggle?: () => void;
   onAlertChange: (alertId: string | null) => void;
+  onSyncAlerts: () => void;
   subtitle?: string; 
   isPinnedStack?: boolean;
 }
@@ -35,7 +36,7 @@ const getLoadStatus = (load?: string) => {
   }
 };
 
-const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertId, isPinned, onPinToggle, onAlertChange, subtitle }) => {
+const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertInfo, isPinned, onPinToggle, onAlertChange, onSyncAlerts, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showUnifiedPicker, setShowUnifiedPicker] = useState(false);
   const [alertMode, setAlertMode] = useState<'IMMEDIATE' | 'PLANNED' | null>(null);
@@ -70,7 +71,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const handleOpenAlertPicker = () => {
     if (!telegramId) {
       setShowIdPrompt(true);
-    } else if (alertId) {
+    } else if (alertInfo) {
       handleStopAlert();
     } else {
       const future = new Date(Date.now() + 35 * 60000);
@@ -82,12 +83,21 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   };
 
   const handleStopAlert = async () => {
-    if (!alertId) return;
+    if (!alertInfo) return;
     setLoading(true);
     try {
-      await cancelAlert({ chatId: telegramId, alertId });
+      if (alertInfo.type === 'LIVE') {
+        await cancelAlert({ chatId: telegramId, alertId: alertInfo.id });
+      } else {
+        await cancelScheduledAlert({ chatId: telegramId, scheduledAlertId: alertInfo.id });
+      }
       onAlertChange(null);
-    } catch {} finally { setLoading(false); }
+      onSyncAlerts();
+    } catch (err) {
+      console.error("Failed to cancel alert", err);
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleStartAlert = async () => {
@@ -111,12 +121,15 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           targetTime: `${plannedDate}T${plannedTime}:00+08:00`
         });
       }
+      
+      onSyncAlerts(); 
       setShowUnifiedPicker(false);
       setAlertSuccess(true);
       setTimeout(() => setAlertSuccess(false), 3000);
     } catch (err: any) {
       if (err instanceof ApiError && err.status === 409) {
         setAlertConflict(true);
+        onSyncAlerts(); 
       } else {
         console.error("Alert setup failed", err);
       }
@@ -176,9 +189,9 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           <button 
             onClick={handleOpenAlertPicker}
             disabled={loading}
-            className={`flex-1 flex items-center justify-center border-b border-white/5 active:bg-white/10 transition-colors ${alertId ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`flex-1 flex items-center justify-center border-b border-white/5 active:bg-white/10 transition-colors ${alertInfo ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : alertId ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : alertInfo ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
           </button>
           <button 
             onClick={onPinToggle}
@@ -301,12 +314,14 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-1 leading-relaxed">
                       An alert for this bus is already running or scheduled.
                     </p>
-                    <button 
-                      onClick={() => navigate('/')}
-                      className="mt-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors"
-                    >
-                      View Existing Alerts →
-                    </button>
+                    <div className="mt-4 flex gap-4">
+                      <button 
+                        onClick={() => navigate('/alerts')}
+                        className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors"
+                      >
+                        View Existing Alerts →
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

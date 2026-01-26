@@ -10,14 +10,15 @@ interface FavoritesPageProps {
   toggleFavorite: (stop: FavoriteBusStop) => void;
   togglePinnedService: (pinned: FavoriteService) => void;
   telegramId: string;
-  activeAlerts: Record<string, string>;
+  unifiedAlerts: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
+  onSyncAlerts: () => void;
   onError: (err: any) => void;
 }
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ 
   favorites, pinnedServices, toggleFavorite, togglePinnedService, 
-  telegramId, activeAlerts, onAlertChange, onError 
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError 
 }) => {
   const pinnedStopCodes = useMemo(() => Array.from(new Set(pinnedServices.map(p => p.busStopCode))), [pinnedServices]);
   
@@ -48,8 +49,9 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                  pinnedServices={pinnedServices}
                  onPinToggle={togglePinnedService}
                  telegramId={telegramId}
-                 activeAlerts={activeAlerts}
+                 unifiedAlerts={unifiedAlerts}
                  onAlertChange={onAlertChange}
+                 onSyncAlerts={onSyncAlerts}
                  onError={onError}
                  onlyShowPinned={true}
                />
@@ -86,8 +88,9 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                 isFavorite={true}
                 onPinToggle={togglePinnedService}
                 telegramId={telegramId}
-                activeAlerts={activeAlerts}
+                unifiedAlerts={unifiedAlerts}
                 onAlertChange={onAlertChange}
+                onSyncAlerts={onSyncAlerts}
                 onError={onError}
               />
             ))}

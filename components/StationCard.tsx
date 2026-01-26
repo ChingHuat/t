@@ -11,8 +11,9 @@ interface StationCardProps {
   toggleFavorite?: () => void;
   onPinToggle: (pinned: FavoriteService) => void;
   telegramId: string;
-  activeAlerts: Record<string, string>;
+  unifiedAlerts: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
+  onSyncAlerts: () => void;
   onDataLoaded?: (code: string, services: BusService[]) => void;
   onError?: (err: any) => void;
   onlyShowPinned?: boolean;
@@ -22,7 +23,7 @@ interface StationCardProps {
 
 const StationCard: React.FC<StationCardProps> = ({ 
   stop, pinnedServices, toggleFavorite, onPinToggle, 
-  telegramId, activeAlerts, onAlertChange, onDataLoaded, onError,
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onDataLoaded, onError,
   onlyShowPinned, isFavorite, showTelemetryPulse 
 }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
@@ -136,8 +137,9 @@ const StationCard: React.FC<StationCardProps> = ({
                 service={s}
                 busStopCode={stop.code}
                 telegramId={telegramId}
-                alertId={activeAlerts[`${stop.code}-${s.ServiceNo}`]}
+                alertInfo={unifiedAlerts[`${stop.code}-${s.ServiceNo}`]}
                 onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
+                onSyncAlerts={onSyncAlerts}
                 isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
                 onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
               />

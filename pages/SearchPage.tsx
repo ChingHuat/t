@@ -11,14 +11,15 @@ interface SearchPageProps {
   toggleFavorite: (stop: FavoriteBusStop) => void;
   togglePinnedService: (pinned: FavoriteService) => void;
   telegramId: string;
-  activeAlerts: Record<string, string>;
+  unifiedAlerts: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }>;
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
+  onSyncAlerts: () => void;
   onError: (err: any) => void;
 }
 
 const SearchPage: React.FC<SearchPageProps> = ({ 
   favorites, pinnedServices, toggleFavorite, togglePinnedService, 
-  telegramId, activeAlerts, onAlertChange, onError 
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError 
 }) => {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -140,8 +141,9 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 isFavorite={isFav}
                 onPinToggle={togglePinnedService}
                 telegramId={telegramId}
-                activeAlerts={activeAlerts}
+                unifiedAlerts={unifiedAlerts}
                 onAlertChange={onAlertChange}
+                onSyncAlerts={onSyncAlerts}
                 onError={onError}
                 showTelemetryPulse={true}
              />
