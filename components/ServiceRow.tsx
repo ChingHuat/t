@@ -223,7 +223,7 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
                   <div className="mt-5 pt-5 border-t border-indigo-500/20 animate-in slide-in-from-top-2 duration-300">
                     <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3">Notify me when bus is within:</p>
                     <div className="grid grid-cols-4 gap-2.5">
-                      {[2, 5, 8, 12].map(m => (
+                      {[5, 8, 10, 12].map(m => (
                         <button 
                           key={m} 
                           onClick={(e) => { e.stopPropagation(); setImmediateThreshold(m); }}
