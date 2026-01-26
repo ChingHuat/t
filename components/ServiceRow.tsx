@@ -4,8 +4,6 @@ import { Bell, BellOff, Loader2, X, Pin, AlertCircle, CalendarCheck, Info, Zap, 
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert, scheduleAlert, cancelScheduledAlert, ApiError } from '../services/busApi';
-import { getStatusTheme, mapTelemetryToStatus } from '../services/statusMapper';
-import { resolveStableLabel, StabilizerState } from '../services/labelStabilizer';
 
 interface ServiceRowProps {
   service: BusService;
@@ -47,26 +45,10 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [alertConflict, setAlertConflict] = useState(false);
   const navigate = useNavigate();
-  
-  const stabilizerRef = useRef<StabilizerState>({
-    currentLabel: mapTelemetryToStatus(service.confidence, service.drift, service.stability),
-    candidateLabel: null,
-    candidateCount: 0,
-    lastChangeTs: Date.now()
-  });
-
-  const [stableLabel, setStableLabel] = useState(stabilizerRef.current.currentLabel);
-
-  useEffect(() => {
-    const rawLabel = mapTelemetryToStatus(service.confidence, service.drift, service.stability);
-    const resolved = resolveStableLabel(stabilizerRef.current, rawLabel);
-    setStableLabel(resolved);
-  }, [service.drift, service.confidence, service.stability]);
 
   const eta1 = (service.eta === 'Arr' || service.eta === 0) ? 'ARR' : service.eta;
   const eta2 = getMinutes(service.NextBus2);
   const loadInfo = getLoadStatus(service.NextBus.Load);
-  const theme = getStatusTheme(stableLabel);
 
   const handleOpenAlertPicker = () => {
     if (!telegramId) {
@@ -166,12 +148,6 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
               {service.ServiceNo}
-            </span>
-            <span 
-              style={{ color: theme.hex, borderColor: `${theme.hex}40`, backgroundColor: `${theme.hex}15` }}
-              className="text-[7px] font-black uppercase px-2 py-0.5 rounded border tracking-[0.15em] transition-all min-w-[75px] text-center"
-            >
-              {stableLabel}
             </span>
           </div>
           <div className="flex items-center gap-3">
