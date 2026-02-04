@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { MapPin, Star, LayoutPanelTop, Home, Building2, ChevronRight, Zap, Bell, BellOff } from 'lucide-react';
+import { MapPin, Star, LayoutPanelTop } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FavoriteBusStop, FavoriteService, CommuteService } from '../types';
 import StationCard from '../components/StationCard';
@@ -16,17 +16,11 @@ interface FavoritesPageProps {
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onSyncAlerts: () => void;
   onError: (err: any) => void;
-  onUpdateCommute: (stopCode: string, svcNo: string, mode: 'home' | 'back' | undefined, name?: string) => void;
-  autoHomeAlert: boolean;
-  setAutoHomeAlert: (val: boolean) => void;
-  autoBackAlert: boolean;
-  setAutoBackAlert: (val: boolean) => void;
 }
 
 const FavoritesPage: React.FC<FavoritesPageProps> = ({ 
   favorites, pinnedServices, commuteServices, toggleFavorite, togglePinnedService, 
-  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError,
-  onUpdateCommute, autoHomeAlert, setAutoHomeAlert, autoBackAlert, setAutoBackAlert
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError
 }) => {
   const navigate = useNavigate();
   const pinnedStopCodes = useMemo(() => Array.from(new Set(pinnedServices.map(p => p.busStopCode))), [pinnedServices]);
@@ -64,7 +58,6 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                  onSyncAlerts={onSyncAlerts}
                  onError={onError}
                  onlyShowPinned={true}
-                 onUpdateCommute={onUpdateCommute}
                />
              ))}
            </div>
@@ -104,7 +97,6 @@ const FavoritesPage: React.FC<FavoritesPageProps> = ({
                 onAlertChange={onAlertChange}
                 onSyncAlerts={onSyncAlerts}
                 onError={onError}
-                onUpdateCommute={onUpdateCommute}
               />
             ))}
           </div>

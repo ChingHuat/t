@@ -16,7 +16,6 @@ interface StationCardProps {
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onSyncAlerts: () => void;
   onDataLoaded?: (code: string, services: BusService[]) => void;
-  onUpdateCommute?: (stopCode: string, serviceNo: string, mode: 'home' | 'back' | undefined, name?: string) => void;
   onError?: (err: any) => void;
   onlyShowPinned?: boolean;
   isFavorite?: boolean;
@@ -25,7 +24,7 @@ interface StationCardProps {
 
 const StationCard: React.FC<StationCardProps> = ({ 
   stop, pinnedServices, commuteServices, toggleFavorite, onPinToggle, 
-  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onDataLoaded, onUpdateCommute, onError,
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onDataLoaded, onError,
   onlyShowPinned, isFavorite, showTelemetryPulse 
 }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
@@ -36,8 +35,6 @@ const StationCard: React.FC<StationCardProps> = ({
   const filteredServices = useMemo(() => {
     if (!data?.services) return [];
     if (onlyShowPinned) {
-      // In specific commute pages, we only show services that match the criteria
-      // Fixed: Replaced non-existent 'serviceNo' with 'serviceNos' and implemented split check for CSV values.
       return data.services.filter(s => 
         pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo) ||
         commuteServices.some(c => c.busStopCode === stop.code && c.serviceNos.split(',').includes(s.ServiceNo))
@@ -146,10 +143,7 @@ const StationCard: React.FC<StationCardProps> = ({
                 onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
                 onSyncAlerts={onSyncAlerts}
                 isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
-                // Fixed: Corrected property access from 'serviceNo' to 'serviceNos' and added list containment check.
-                commuteMode={commuteServices.find(p => p.busStopCode === stop.code && p.serviceNos.split(',').includes(s.ServiceNo))?.mode}
                 onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
-                onUpdateCommute={(mode) => onUpdateCommute && onUpdateCommute(stop.code, s.ServiceNo, mode, stop.name)}
               />
             ))}
           </>

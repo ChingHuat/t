@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Zap, ShieldCheck, Loader2, Home, Building2, Bell, BellOff, Footprints } from 'lucide-react';
+import { ChevronLeft, Zap, Loader2, Home, Building2, Bell, BellOff, Footprints } from 'lucide-react';
 import { FavoriteService, FavoriteBusStop, CommuteService } from '../types';
 import { fetchBusArrival, registerAlert } from '../services/busApi';
 import StationCard from '../components/StationCard';
@@ -25,7 +25,7 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
   const { mode } = useParams<{ mode: 'home' | 'back' }>();
   const navigate = useNavigate();
   const [initializing, setInitializing] = useState(true);
-  const [alertStatus, setAlertStatus] = useState<Record<string, 'ALREADY_ACTIVE' | 'TRIGGERED' | 'SKIPPED_CLOSE' | 'SKIPPED_TOGGLE' | 'ERROR'>>({});
+  const [alertStatus, setAlertStatus] = useState<Record<string, string>>({});
 
   const activeModeServices = useMemo(() => 
     commuteServices.filter(p => p.mode === mode), 
@@ -52,11 +52,10 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
 
     const triggerSmartAlerts = async () => {
       setInitializing(true);
-      const results: Record<string, any> = {};
+      const results: Record<string, string> = {};
 
       if (!isAutoEnabled) {
         activeModeServices.forEach(svc => {
-          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
           results[`${svc.busStopCode}-${svc.serviceNos}`] = 'SKIPPED_TOGGLE';
         });
         setAlertStatus(results);
@@ -65,7 +64,6 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
       }
 
       for (const svc of activeModeServices) {
-        // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
         const alertKey = `${svc.busStopCode}-${svc.serviceNos}`;
         if (unifiedAlerts[alertKey]) {
           results[alertKey] = 'ALREADY_ACTIVE';
@@ -74,7 +72,6 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
 
         try {
           const arrivalData = await fetchBusArrival(svc.busStopCode);
-          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
           const bus = arrivalData.services.find(s => s.ServiceNo === svc.serviceNos);
           
           if (!bus || bus.eta === 'NA') {
@@ -83,8 +80,6 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
           }
 
           const eta = bus.eta === 'Arr' ? 0 : Number(bus.eta);
-          
-          // DYNAMIC THRESHOLD: walkingTime + 2 min buffer
           const walkTime = svc.walkingTime || 5;
           const threshold = walkTime + 2;
           
@@ -92,18 +87,15 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
             const res = await registerAlert({
               chatId: telegramId,
               busStopCode: svc.busStopCode,
-              // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
               serviceNo: svc.serviceNos,
               threshold: threshold
             });
-            // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
             onAlertChange(svc.busStopCode, svc.serviceNos, res.alertId);
             results[alertKey] = 'TRIGGERED';
           } else {
             results[alertKey] = 'SKIPPED_CLOSE';
           }
         } catch (err) {
-          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
           console.error(`Auto-alert failed for ${svc.serviceNos}`, err);
           results[alertKey] = 'ERROR';
         }
@@ -132,7 +124,6 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
         </div>
       </div>
 
-      {/* Status Hero Card */}
       <div className={`relative overflow-hidden mb-10 p-8 rounded-[2.5rem] border border-white/10 shadow-2xl ${isHome ? 'bg-indigo-600/10' : 'bg-emerald-600/10'}`}>
          <div className="absolute top-0 right-0 p-8 opacity-5">
             {isHome ? <Home className="w-32 h-32" /> : <Building2 className="w-32 h-32" />}
@@ -162,27 +153,16 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
                     </p>
                     <p className="text-[11px] font-bold text-slate-400 leading-relaxed uppercase tracking-tight">
                       {isAutoEnabled 
-                        ? `Deployment synced to node telemetry. Alerts trigger at walkingTime + 2m threshold.`
-                        : "Tracking live ETAs only. Automatic alerts are currently disabled via toggle."}
+                        ? `Deployment synced to node telemetry.`
+                        : "Tracking live ETAs only. Automatic alerts are currently disabled."}
                     </p>
                   </div>
                 </div>
-
-                {activeModeServices.map(svc => (
-                  <div key={svc.serviceNos} className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
-                    <Footprints className="w-4 h-4 text-slate-500" />
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                      {/* Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition. */}
-                      Node {svc.busStopCode} ({svc.serviceNos}) : {svc.walkingTime}m Walk Sync
-                    </span>
-                  </div>
-                ))}
               </div>
             )}
          </div>
       </div>
 
-      {/* Result Cards */}
       {stops.length > 0 ? (
         <div className="bg-[#121215] border border-white/5 rounded-[2rem] p-2.5 shadow-xl">
           {stops.map(stop => (
@@ -205,7 +185,7 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
         <div className="py-24 text-center bg-white/[0.01] border border-white/5 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center">
           <Bell className="w-8 h-8 text-slate-800 mb-5" />
           <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] leading-loose">
-            No Commute Assignments Found.<br/>Click the gear on the floating buttons.
+            No Commute Assignments Found.
           </p>
         </div>
       )}

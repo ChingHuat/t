@@ -16,13 +16,11 @@ interface SearchPageProps {
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onSyncAlerts: () => void;
   onError: (err: any) => void;
-  onUpdateCommute?: (stopCode: string, serviceNo: string, mode: 'home' | 'back' | undefined, name?: string) => void;
 }
 
 const SearchPage: React.FC<SearchPageProps> = ({ 
   favorites, pinnedServices, commuteServices, toggleFavorite, togglePinnedService, 
-  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError,
-  onUpdateCommute
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError
 }) => {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -40,7 +38,6 @@ const SearchPage: React.FC<SearchPageProps> = ({
           const json = await searchBusStops(trimmed);
           const raw = Array.isArray(json) ? json : (json?.results || []);
           
-          // Unified mapping
           const mapped = raw.map((res: any) => ({
             busStopCode: res.busStopCode || res.BUS_STOP_CODE || null,
             name: res.name || res.SEARCHVAL || res.BUILDING || "Unknown Location",
@@ -49,7 +46,6 @@ const SearchPage: React.FC<SearchPageProps> = ({
             longitude: parseFloat(res.longitude || res.LONGITUDE)
           }));
 
-          // Deduplicate results based on Name and Road to prevent UI clutter
           const uniqueResultsMap = new Map();
           mapped.forEach((item: any) => {
             const uniqueKey = (item.busStopCode ? item.busStopCode : `${item.name}-${item.road}`).toLowerCase().trim();
@@ -149,7 +145,6 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 onAlertChange={onAlertChange}
                 onSyncAlerts={onSyncAlerts}
                 onError={onError}
-                onUpdateCommute={onUpdateCommute}
                 showTelemetryPulse={true}
              />
            </div>
