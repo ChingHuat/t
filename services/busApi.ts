@@ -62,8 +62,8 @@ const secureFetch = async (url: string, options: RequestInit = {}) => {
       }
       
       if (response.status === 400) {
-        const detail = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
-        throw new ApiError(`Bad Request (400): ${detail}.`, 400, errorData);
+        const detail = typeof errorData === 'object' ? (errorData.message || JSON.stringify(errorData)) : errorData;
+        throw new ApiError(detail || "Invalid Request (400)", 400, errorData);
       }
       
       throw new ApiError(`Request failed with status ${response.status}`, response.status, errorData);

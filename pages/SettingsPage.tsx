@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info, Home, Building2, Zap, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info, Home, Building2, Zap, Trash2, X } from 'lucide-react';
 import { CommuteService } from '../types';
 
 interface SettingsPageProps {
@@ -14,6 +15,7 @@ interface SettingsPageProps {
 const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, apiOnline, commuteServices, onUpdateCommute }) => {
   const [inputValue, setInputValue] = useState(telegramId);
   const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
 
   const handleSaveTelegram = () => {
     const clean = inputValue.replace(/[^0-9]/g, '');
@@ -28,9 +30,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
 
   return (
     <div className="pb-40 space-y-12 animate-in fade-in duration-500">
-      <div className="px-1">
-        <h2 className="text-4xl font-black tracking-tighter text-white uppercase">Settings</h2>
-        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-3">System Configuration</p>
+      {/* Header with Exit Button */}
+      <div className="px-1 flex justify-between items-start">
+        <div>
+          <h2 className="text-4xl font-black tracking-tighter text-white uppercase leading-none">Settings</h2>
+          <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-3">System Configuration</p>
+        </div>
+        <button 
+          onClick={() => navigate('/')}
+          className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90 shadow-lg"
+          aria-label="Exit Settings"
+        >
+          <X className="w-6 h-6" />
+        </button>
       </div>
 
       {/* Commute Assignments */}

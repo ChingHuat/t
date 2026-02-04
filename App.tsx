@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MemoryRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation, Bell, Home, Building2, Settings, Footprints, Zap, Loader2, Info } from 'lucide-react';
+import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation, Bell, Home, Building2, Settings, Footprints, Zap, Loader2, Info, GripVertical, GripHorizontal } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -29,7 +29,8 @@ const CommuteFab: React.FC<{
   const isWarningYellow = activeAlert?.firedStages?.ready;
   const isWarningRed = activeAlert?.firedStages?.leave;
 
-  const handleTap = async () => {
+  const handleTap = async (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
     if (!telegramId) {
       onError("Link Telegram in Settings first");
       return;
@@ -42,15 +43,14 @@ const CommuteFab: React.FC<{
     if ('vibrate' in navigator) navigator.vibrate(50);
     setLoading(true);
 
-    const services = config.serviceNos.split(',').map(s => s.trim()).filter(s => s !== "");
+    const services = config.serviceNos.split(',').map(s => s.trim().toUpperCase()).filter(s => s !== "");
 
     try {
       if (isTracking) {
-        onLog(`Aborting ${mode} mission...`, 'info');
+        onLog(`Aborting mission...`, 'info');
         
-        // Optimistically clear local state for instant UI update
         setLocalAlerts(prev => prev.filter(a => 
-          !(String(a.busStopCode) === String(config.busStopCode) && services.includes(String(a.serviceNo)))
+          !(String(a.busStopCode) === String(config.busStopCode) && services.includes(String(a.serviceNo).toUpperCase()))
         ));
 
         for (const s of services) {
@@ -62,7 +62,7 @@ const CommuteFab: React.FC<{
               serviceNo: s 
             });
           } catch (e) {
-            console.debug(`Cancel skip for ${s}`);
+            console.debug(`Cancel skip for ${s}`, e);
           }
         }
         onLog(`✅ Mission Cleared`, 'success');
@@ -84,7 +84,8 @@ const CommuteFab: React.FC<{
             if (res?.status === 'URGENT') urgentCount++;
             else if (res?.status === 'TRACKING') trackingCount++;
           } catch (err: any) {
-            errors.push(`${s}: ${err.message || "Bus not found"}`);
+            console.warn(`Service ${s} failed:`, err.message);
+            errors.push(`${s}: ${err.message || "Error"}`);
           }
         }
         
@@ -92,11 +93,11 @@ const CommuteFab: React.FC<{
           onLog(errors[0], 'error');
         } else {
           const statusMsg = [];
-          if (trackingCount > 0) statusMsg.push(`${trackingCount} Active`);
+          if (trackingCount > 0) statusMsg.push(`${trackingCount} Monitoring`);
           if (urgentCount > 0) statusMsg.push(`${urgentCount} Urgent`);
-          onLog(`🚀 Sync: ${statusMsg.join(' + ')}`, urgentCount > 0 ? 'error' : 'success');
+          if (errors.length > 0) statusMsg.push(`${errors.length} Failed`);
+          onLog(`🚀 ${statusMsg.join(' | ')}`, urgentCount > 0 ? 'error' : (errors.length > 0 ? 'info' : 'success'));
         }
-        
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
       }
       onRefresh();
@@ -117,8 +118,9 @@ const CommuteFab: React.FC<{
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group touch-none">
       <button
+        onPointerDown={(e) => e.stopPropagation()} 
         onClick={handleTap}
         disabled={loading}
         className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-[0_12px_40px_rgba(0,0,0,0.8)] border-2 z-20 active:scale-90 ${getButtonColor()} ${isTracking ? 'animate-pulse ring-4 ring-emerald-500/30' : ''}`}
@@ -133,13 +135,14 @@ const CommuteFab: React.FC<{
       </button>
       
       <button
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onConfigOpen(mode); }}
         className="absolute -top-1 -right-1 w-7 h-7 bg-[#1a1a1e] border border-white/20 rounded-full flex items-center justify-center text-slate-300 hover:text-indigo-400 hover:rotate-90 transition-all shadow-xl active:scale-75 z-30"
       >
         <Settings className="w-3.5 h-3.5" />
       </button>
 
-      <span className={`absolute right-16 top-1/2 -translate-y-1/2 text-[7px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-colors duration-300 px-3 py-1 bg-black/60 backdrop-blur-md rounded-lg border border-white/5 ${isTracking ? 'text-emerald-400' : 'text-slate-500'}`}>
+      <span className={`absolute right-16 top-1/2 -translate-y-1/2 text-[7px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-colors duration-300 px-3 py-1 bg-black/60 backdrop-blur-md rounded-lg border border-white/5 pointer-events-none ${isTracking ? 'text-emerald-400' : 'text-slate-500'}`}>
         {isTracking ? 'TRACKING' : (isHome ? 'HOME' : 'OFFICE')}
       </span>
     </div>
@@ -166,6 +169,14 @@ const AppContent: React.FC = () => {
     return localStorage.getItem('sg_bus_telegram_id') || '';
   });
 
+  // FAB Position Logic
+  const [fabPos, setFabPos] = useState(() => {
+    const saved = localStorage.getItem('sg_bus_fab_pos');
+    return saved ? JSON.parse(saved) : { x: window.innerWidth - 80, y: window.innerHeight - 300 };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ offsetX: 0, offsetY: 0 });
+
   const [rawAlerts, setRawAlerts] = useState<any[]>([]);
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -187,6 +198,39 @@ const AppContent: React.FC = () => {
     setTimeout(() => setStatusLog(null), 6000);
   }, []);
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only drag if the target is the container or the handle, not the buttons themselves
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+
+    setIsDragging(true);
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+    };
+    
+    // Set pointer capture to track movement even if the pointer leaves the bounds
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    
+    const newX = Math.max(0, Math.min(window.innerWidth - 70, e.clientX - dragRef.current.offsetX));
+    const newY = Math.max(60, Math.min(window.innerHeight - 150, e.clientY - dragRef.current.offsetY));
+    
+    setFabPos({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDragging) {
+      setIsDragging(false);
+      localStorage.setItem('sg_bus_fab_pos', JSON.stringify(fabPos));
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
   useEffect(() => {
     if (configMode) {
       const existing = commuteServices.find(s => s.mode === configMode);
@@ -201,12 +245,15 @@ const AppContent: React.FC = () => {
   const handleSaveConfig = () => {
     if (!configMode) return;
     const { stopCode, serviceNos, walkingTime } = modalData;
+    if (!stopCode || !serviceNos) {
+      handleLog("Enter Stop Code & Service Nos", "error");
+      return;
+    }
     setCommuteServices(prev => {
       const filtered = prev.filter(p => p.mode !== configMode);
-      if (!stopCode || !serviceNos) return filtered;
       return [...filtered, {
-        busStopCode: stopCode,
-        serviceNos: serviceNos.toUpperCase().replace(/\s+/g, ''),
+        busStopCode: stopCode.trim(),
+        serviceNos: serviceNos.toUpperCase().replace(/\s+/g, '').trim(),
         busStopName: `Node ${stopCode}`,
         mode: configMode,
         walkingTime: parseInt(walkingTime) || 5
@@ -333,14 +380,22 @@ const AppContent: React.FC = () => {
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setConfigMode(null)} />
           <div className="relative w-full max-w-sm bg-[#1a1a1e] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex items-center gap-4 mb-8">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${configMode === 'home' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.3)]'}`}>
-                {configMode === 'home' ? <Home className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${configMode === 'home' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.3)]'}`}>
+                  {configMode === 'home' ? <Home className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Mission Sync</h3>
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{configMode === 'home' ? 'Origin' : 'Return'} Config</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-black uppercase tracking-tight">Mission Sync</h3>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{configMode === 'home' ? 'Origin' : 'Return'} Config</p>
-              </div>
+              <button 
+                onClick={() => setConfigMode(null)}
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all active:scale-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="space-y-6">
@@ -367,6 +422,7 @@ const AppContent: React.FC = () => {
                 <input 
                   type="number" value={modalData.walkingTime} 
                   onChange={e => setModalData({...modalData, walkingTime: e.target.value})} 
+                  onKeyDown={e => e.key === 'Enter' && handleSaveConfig()}
                   placeholder="5" min="1" max="30" 
                   className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white font-black tracking-widest text-lg focus:ring-1 focus:ring-indigo-500/50" 
                 />
@@ -412,44 +468,54 @@ const AppContent: React.FC = () => {
         </div>
       </main>
 
-      {/* Grouped Edge Controls */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] pb-10 px-6 pointer-events-none">
-        <div className="max-w-2xl mx-auto relative flex flex-col items-end">
-          
-          {/* Right-Aligned Vertical Command Stack */}
-          <div className="flex flex-col gap-4 mb-4 pointer-events-auto items-end">
-            <CommuteFab 
-              mode="home" 
-              config={commuteServices.find(s => s.mode === 'home') || null} 
-              activeAlert={getFabAlert('home')} 
-              telegramId={telegramId} 
-              onConfigOpen={setConfigMode} 
-              onRefresh={syncAlerts} 
-              onLog={handleLog} 
-              onError={handleError}
-              setLocalAlerts={setRawAlerts}
-            />
-            <CommuteFab 
-              mode="back" 
-              config={commuteServices.find(s => s.mode === 'back') || null} 
-              activeAlert={getFabAlert('back')} 
-              telegramId={telegramId} 
-              onConfigOpen={setConfigMode} 
-              onRefresh={syncAlerts} 
-              onLog={handleLog} 
-              onError={handleError}
-              setLocalAlerts={setRawAlerts}
-            />
-          </div>
+      {/* Global Command Center (Repositionable Group) */}
+      <div 
+        className={`fixed z-[100] touch-none select-none flex flex-col items-center gap-2 p-4 rounded-3xl transition-shadow ${isDragging ? 'cursor-grabbing shadow-[0_20px_50px_rgba(0,0,0,0.4)] bg-white/5' : 'cursor-grab hover:bg-white/[0.02]'}`}
+        style={{ left: `${fabPos.x}px`, top: `${fabPos.y}px` }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+      >
+        {/* Tactical Grip Handle */}
+        <div className="w-12 h-6 flex items-center justify-center text-slate-600/50 mb-1 group-hover:text-slate-400 transition-colors">
+           <GripHorizontal className="w-5 h-5" />
+        </div>
+        
+        <div className="flex flex-col gap-4 pointer-events-auto">
+          <CommuteFab 
+            mode="home" 
+            config={commuteServices.find(s => s.mode === 'home') || null} 
+            activeAlert={getFabAlert('home')} 
+            telegramId={telegramId} 
+            onConfigOpen={setConfigMode} 
+            onRefresh={syncAlerts} 
+            onLog={handleLog} 
+            onError={handleError}
+            setLocalAlerts={setRawAlerts}
+          />
+          <CommuteFab 
+            mode="back" 
+            config={commuteServices.find(s => s.mode === 'back') || null} 
+            activeAlert={getFabAlert('back')} 
+            telegramId={telegramId} 
+            onConfigOpen={setConfigMode} 
+            onRefresh={syncAlerts} 
+            onLog={handleLog} 
+            onError={handleError}
+            setLocalAlerts={setRawAlerts}
+          />
+        </div>
+      </div>
 
-          {/* Centralized Global Nav */}
-          <div className="w-full flex justify-center pointer-events-none">
-            <nav className="bg-[#141417]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center gap-2 shadow-[0_25px_60px_rgba(0,0,0,0.9)] pointer-events-auto">
-              <NavLink to="/" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><LayoutGrid className="w-6 h-6" /></NavLink>
-              <NavLink to="/search" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Search className="w-6 h-6" /></NavLink>
-              <NavLink to="/planner" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Navigation className="w-6 h-6" /></NavLink>
-            </nav>
-          </div>
+      {/* Navigation Dock */}
+      <div className="fixed bottom-0 left-0 right-0 z-[90] pb-10 px-6 pointer-events-none">
+        <div className="max-w-2xl mx-auto flex justify-center">
+          <nav className="bg-[#141417]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center gap-2 shadow-[0_25px_60px_rgba(0,0,0,0.9)] pointer-events-auto">
+            <NavLink to="/" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><LayoutGrid className="w-6 h-6" /></NavLink>
+            <NavLink to="/search" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Search className="w-6 h-6" /></NavLink>
+            <NavLink to="/planner" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Navigation className="w-6 h-6" /></NavLink>
+          </nav>
         </div>
       </div>
     </div>

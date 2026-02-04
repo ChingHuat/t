@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X, Loader2, BellRing, CalendarClock } from 'lucide-react';
 import { cancelAlert, cancelScheduledAlert } from '../services/busApi';
@@ -38,7 +37,10 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
     const list: UnifiedAlert[] = [];
 
     // Process Live Alerts
-    Object.entries(activeAlerts).forEach(([key, alertObj]) => {
+    // Use Object.keys to ensure correct type inference of alertObj from activeAlerts Record.
+    // This avoids "Property 'id' does not exist on type 'unknown'" errors sometimes seen with Object.entries.
+    Object.keys(activeAlerts).forEach((key) => {
+      const alertObj = activeAlerts[key];
       const lastDash = key.lastIndexOf('-');
       const stopCode = key.substring(0, lastDash);
       const serviceNo = key.substring(lastDash + 1);
