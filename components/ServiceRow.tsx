@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, BellOff, Loader2, X, Pin, AlertCircle, CalendarCheck, Info, Zap, Clock, ShieldCheck, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Bell, BellOff, Loader2, X, Pin, AlertCircle, CalendarCheck, Info, Zap, Clock, ShieldCheck, ChevronDown, ChevronUp, AlertTriangle, Home, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BusService, BusArrivalInfo } from '../types';
 import { registerAlert, cancelAlert, scheduleAlert, cancelScheduledAlert, ApiError } from '../services/busApi';
@@ -11,9 +11,11 @@ interface ServiceRowProps {
   telegramId: string;
   alertInfo?: { id: string, type: 'LIVE' | 'SCHEDULED' } | null;
   isPinned?: boolean;
+  commuteMode?: 'home' | 'back';
   onPinToggle?: () => void;
   onAlertChange: (alertId: string | null) => void;
   onSyncAlerts: () => void;
+  onUpdateCommute?: (mode: 'home' | 'back' | undefined) => void;
   subtitle?: string; 
   isPinnedStack?: boolean;
 }
@@ -34,7 +36,7 @@ const getLoadStatus = (load?: string) => {
   }
 };
 
-const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertInfo, isPinned, onPinToggle, onAlertChange, onSyncAlerts, subtitle }) => {
+const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramId, alertInfo, isPinned, commuteMode, onPinToggle, onAlertChange, onSyncAlerts, onUpdateCommute, subtitle }) => {
   const [loading, setLoading] = useState(false);
   const [showUnifiedPicker, setShowUnifiedPicker] = useState(false);
   const [alertMode, setAlertMode] = useState<'IMMEDIATE' | 'PLANNED' | null>(null);
@@ -149,6 +151,26 @@ const ServiceRow: React.FC<ServiceRowProps> = ({ service, busStopCode, telegramI
             <span className="text-[22px] font-black text-white tabular-nums tracking-tighter leading-none">
               {service.ServiceNo}
             </span>
+            
+            {/* Commute Mode Indicators (Mini) - Now always visible if onUpdateCommute is provided */}
+            {onUpdateCommute && (
+              <div className="flex gap-1 animate-in fade-in zoom-in-95 duration-300">
+                <button 
+                  onClick={() => onUpdateCommute('home')}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${commuteMode === 'home' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 text-slate-600 hover:text-slate-400 border border-white/5'}`}
+                  title="Assign to Home Route"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={() => onUpdateCommute('back')}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${commuteMode === 'back' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white/5 text-slate-600 hover:text-slate-400 border border-white/5'}`}
+                  title="Assign to Back Route"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${loadInfo.color}`}>

@@ -1,31 +1,103 @@
 
 import React, { useState } from 'react';
-import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info } from 'lucide-react';
+import { BellRing, Wifi, WifiOff, MessageSquare, Bell, Send, Info, Home, Building2, Zap, Trash2 } from 'lucide-react';
+import { CommuteService } from '../types';
 
 interface SettingsPageProps {
   telegramId: string;
   onUpdateId: (id: string) => void;
   apiOnline: boolean | null;
+  commuteServices: CommuteService[];
+  onUpdateCommute: (stopCode: string, svcNo: string, mode: 'home' | 'back' | undefined) => void;
 }
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, apiOnline }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, apiOnline, commuteServices, onUpdateCommute }) => {
   const [inputValue, setInputValue] = useState(telegramId);
   const [saved, setSaved] = useState(false);
 
   const handleSaveTelegram = () => {
     const clean = inputValue.replace(/[^0-9]/g, '');
-    console.info(`%c[Settings] Linking Telegram ID: ${clean}. Monitoring will begin on next sync cycle...`, "color: #6366f1; font-weight: bold;");
     onUpdateId(clean);
     setInputValue(clean);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const homeCommute = commuteServices.filter(p => p.mode === 'home');
+  const backCommute = commuteServices.filter(p => p.mode === 'back');
+
   return (
     <div className="pb-40 space-y-12 animate-in fade-in duration-500">
       <div className="px-1">
         <h2 className="text-4xl font-black tracking-tighter text-white uppercase">Settings</h2>
         <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-3">System Configuration</p>
+      </div>
+
+      {/* Commute Assignments */}
+      <div className="space-y-6 px-1">
+        <div className="flex items-center gap-3">
+           <Zap className="w-4 h-4 text-indigo-400" />
+           <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Route Assignments</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           {/* Home Route List */}
+           <div className="bg-[#131316] rounded-[2rem] border border-white/5 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center">
+                    <Home className="w-4 h-4 text-indigo-400" />
+                 </div>
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Leave Home Mode</span>
+              </div>
+              <div className="space-y-2">
+                {homeCommute.length === 0 ? (
+                  <p className="text-[10px] font-bold text-slate-600 uppercase italic">No nodes assigned.</p>
+                ) : (
+                  homeCommute.map(svc => (
+                    <div key={`${svc.busStopCode}-${svc.serviceNo}`} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[12px] font-black text-white">{svc.serviceNo}</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{svc.busStopCode}</span>
+                      </div>
+                      <button onClick={() => onUpdateCommute(svc.busStopCode, svc.serviceNo, undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+           </div>
+
+           {/* Back Route List */}
+           <div className="bg-[#131316] rounded-[2rem] border border-white/5 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                 </div>
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Back Home Mode</span>
+              </div>
+              <div className="space-y-2">
+                {backCommute.length === 0 ? (
+                  <p className="text-[10px] font-bold text-slate-600 uppercase italic">No nodes assigned.</p>
+                ) : (
+                  backCommute.map(svc => (
+                    <div key={`${svc.busStopCode}-${svc.serviceNo}`} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[12px] font-black text-white">{svc.serviceNo}</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{svc.busStopCode}</span>
+                      </div>
+                      <button onClick={() => onUpdateCommute(svc.busStopCode, svc.serviceNo, undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+           </div>
+        </div>
+        <p className="text-[9px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight ml-1">
+          Assign services by clicking the 🏠 or 🏢 icons on any bus card.
+        </p>
       </div>
 
       {/* Connection Status Cards */}

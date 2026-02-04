@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, Loader2, RefreshCw, MapPin } from 'lucide-react';
 import { fetchBusArrival, fetchWeather } from '../services/busApi';
-import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, BusService, WeatherResponse } from '../types';
+import { FavoriteBusStop, BusStopArrivalResponse, FavoriteService, CommuteService, BusService, WeatherResponse } from '../types';
 import ServiceRow from './ServiceRow';
 
 interface StationCardProps {
   stop: FavoriteBusStop;
   pinnedServices: FavoriteService[];
+  commuteServices: CommuteService[];
   toggleFavorite?: () => void;
   onPinToggle: (pinned: FavoriteService) => void;
   telegramId: string;
@@ -15,6 +16,7 @@ interface StationCardProps {
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onSyncAlerts: () => void;
   onDataLoaded?: (code: string, services: BusService[]) => void;
+  onUpdateCommute?: (stopCode: string, serviceNo: string, mode: 'home' | 'back' | undefined, name?: string) => void;
   onError?: (err: any) => void;
   onlyShowPinned?: boolean;
   isFavorite?: boolean;
@@ -22,8 +24,8 @@ interface StationCardProps {
 }
 
 const StationCard: React.FC<StationCardProps> = ({ 
-  stop, pinnedServices, toggleFavorite, onPinToggle, 
-  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onDataLoaded, onError,
+  stop, pinnedServices, commuteServices, toggleFavorite, onPinToggle, 
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onDataLoaded, onUpdateCommute, onError,
   onlyShowPinned, isFavorite, showTelemetryPulse 
 }) => {
   const [data, setData] = useState<BusStopArrivalResponse | null>(null);
@@ -34,12 +36,14 @@ const StationCard: React.FC<StationCardProps> = ({
   const filteredServices = useMemo(() => {
     if (!data?.services) return [];
     if (onlyShowPinned) {
+      // In specific commute pages, we only show services that match the criteria
       return data.services.filter(s => 
-        pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)
+        pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo) ||
+        commuteServices.some(c => c.busStopCode === stop.code && c.serviceNo === s.ServiceNo)
       );
     }
     return data.services;
-  }, [data, onlyShowPinned, pinnedServices, stop.code]);
+  }, [data, onlyShowPinned, pinnedServices, commuteServices, stop.code]);
 
   const load = async (isManual = false) => {
     if (isManual) {
@@ -69,7 +73,7 @@ const StationCard: React.FC<StationCardProps> = ({
 
   useEffect(() => { 
     load(); 
-    const interval = setInterval(load, 15000); // Polling interval increased to 15s
+    const interval = setInterval(load, 15000); // Polling interval 15s
     return () => clearInterval(interval);
   }, [stop.code]);
 
@@ -141,7 +145,9 @@ const StationCard: React.FC<StationCardProps> = ({
                 onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
                 onSyncAlerts={onSyncAlerts}
                 isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
+                commuteMode={commuteServices.find(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)?.mode}
                 onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
+                onUpdateCommute={(mode) => onUpdateCommute && onUpdateCommute(stop.code, s.ServiceNo, mode, stop.name)}
               />
             ))}
           </>

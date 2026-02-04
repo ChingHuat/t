@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon, Loader2, ArrowRight, Building, Bus } from 'lucide-react';
 import { searchBusStops } from '../services/busApi';
-import { FavoriteBusStop, FavoriteService } from '../types';
+import { FavoriteBusStop, FavoriteService, CommuteService } from '../types';
 import StationCard from '../components/StationCard';
 
 interface SearchPageProps {
   favorites: FavoriteBusStop[];
   pinnedServices: FavoriteService[];
+  commuteServices: CommuteService[];
   toggleFavorite: (stop: FavoriteBusStop) => void;
   togglePinnedService: (pinned: FavoriteService) => void;
   telegramId: string;
@@ -15,11 +16,13 @@ interface SearchPageProps {
   onAlertChange: (stopCode: string, serviceNo: string, alertId: string | null) => void;
   onSyncAlerts: () => void;
   onError: (err: any) => void;
+  onUpdateCommute?: (stopCode: string, serviceNo: string, mode: 'home' | 'back' | undefined, name?: string) => void;
 }
 
 const SearchPage: React.FC<SearchPageProps> = ({ 
-  favorites, pinnedServices, toggleFavorite, togglePinnedService, 
-  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError 
+  favorites, pinnedServices, commuteServices, toggleFavorite, togglePinnedService, 
+  telegramId, unifiedAlerts, onAlertChange, onSyncAlerts, onError,
+  onUpdateCommute
 }) => {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -105,7 +108,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
             onKeyDown={(e) => e.key === 'Enter' && handleQuickFetch(query.trim())}
           />
           <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-indigo-400 transition-all" />
-          {searching && <Loader2 className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500 animate-spin" />}
+          {searching && <Loader2 className="absolute right-14 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500 animate-spin" />}
         </div>
 
         {searchResults.length > 0 && (
@@ -137,6 +140,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
              <StationCard 
                 stop={activeStop}
                 pinnedServices={pinnedServices}
+                commuteServices={commuteServices}
                 toggleFavorite={() => toggleFavorite(activeStop)}
                 isFavorite={isFav}
                 onPinToggle={togglePinnedService}
@@ -145,6 +149,7 @@ const SearchPage: React.FC<SearchPageProps> = ({
                 onAlertChange={onAlertChange}
                 onSyncAlerts={onSyncAlerts}
                 onError={onError}
+                onUpdateCommute={onUpdateCommute}
                 showTelemetryPulse={true}
              />
            </div>

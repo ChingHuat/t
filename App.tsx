@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MemoryRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Search, LayoutGrid, Cpu, Bus, RefreshCw, AlertCircle, X, Navigation, Bell } from 'lucide-react';
@@ -6,7 +7,8 @@ import FavoritesPage from './pages/FavoritesPage';
 import SettingsPage from './pages/SettingsPage';
 import JourneyPlanner from './pages/PlannerPage';
 import AlertsPage from './pages/AlertsPage';
-import { FavoriteBusStop, FavoriteService, ScheduledAlertStatus } from './types';
+import CommuteModePage from './pages/CommuteModePage';
+import { FavoriteBusStop, FavoriteService, CommuteService, ScheduledAlertStatus } from './types';
 import { fetchAlertStatus, checkApiStatus, fetchScheduledAlertStatus } from './services/busApi';
 
 const App: React.FC = () => {
@@ -20,6 +22,11 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [commuteServices, setCommuteServices] = useState<CommuteService[]>(() => {
+    const saved = localStorage.getItem('sg_bus_commute_services');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [telegramId, setTelegramId] = useState<string>(() => {
     return localStorage.getItem('sg_bus_telegram_id') || '';
   });
@@ -27,6 +34,14 @@ const App: React.FC = () => {
   const [activeAlerts, setAlerts] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('sg_bus_active_alerts');
     return saved ? JSON.parse(saved) : {};
+  });
+
+  const [autoHomeAlert, setAutoHomeAlert] = useState<boolean>(() => {
+    return localStorage.getItem('sg_bus_auto_home_alert') === 'true';
+  });
+
+  const [autoBackAlert, setAutoBackAlert] = useState<boolean>(() => {
+    return localStorage.getItem('sg_bus_auto_back_alert') === 'true';
   });
 
   const [scheduledAlerts, setScheduledAlerts] = useState<ScheduledAlertStatus[]>([]);
@@ -60,9 +75,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sg_bus_favorites', JSON.stringify(favorites));
     localStorage.setItem('sg_bus_pinned_services', JSON.stringify(pinnedServices));
+    localStorage.setItem('sg_bus_commute_services', JSON.stringify(commuteServices));
     localStorage.setItem('sg_bus_telegram_id', telegramId);
     localStorage.setItem('sg_bus_active_alerts', JSON.stringify(activeAlerts));
-  }, [favorites, pinnedServices, telegramId, activeAlerts]);
+    localStorage.setItem('sg_bus_auto_home_alert', String(autoHomeAlert));
+    localStorage.setItem('sg_bus_auto_back_alert', String(autoBackAlert));
+  }, [favorites, pinnedServices, commuteServices, telegramId, activeAlerts, autoHomeAlert, autoBackAlert]);
 
   const toggleFavorite = (stop: FavoriteBusStop) => {
     setFavorites(prev => {
@@ -75,6 +93,20 @@ const App: React.FC = () => {
     setPinnedServices(prev => {
       const exists = prev.find(p => p.busStopCode === pinned.busStopCode && p.serviceNo === pinned.serviceNo);
       return exists ? prev.filter(p => !(p.busStopCode === pinned.busStopCode && p.serviceNo === pinned.serviceNo)) : [...prev, pinned];
+    });
+  };
+
+  const updateCommuteService = (busStopCode: string, serviceNo: string, mode: 'home' | 'back' | undefined, busStopName: string = 'Bus Stop') => {
+    setCommuteServices(prev => {
+      const filtered = prev.filter(p => !(p.busStopCode === busStopCode && p.serviceNo === serviceNo));
+      
+      const existing = prev.find(p => p.busStopCode === busStopCode && p.serviceNo === serviceNo);
+      
+      // Toggle logic: If clicking the same mode, remove it. If different or none, add it.
+      if (mode && existing?.mode !== mode) {
+        return [...filtered, { busStopCode, busStopName, serviceNo, mode }];
+      }
+      return filtered;
     });
   };
 
@@ -95,11 +127,7 @@ const App: React.FC = () => {
       const serverAlerts = response.alerts || [];
       const nextLive: Record<string, string> = {};
       
-      console.info(`%c[Diagnostic] Polling Alerts: ${serverAlerts.length} found.`, "color: #6366f1; font-weight: bold;");
-      if (serverAlerts.length > 0) console.table(serverAlerts);
-
       serverAlerts.forEach(a => {
-         // Discard alerts that are completed from the view logic
          const isCompleted = a.firedStages.ready && a.firedStages.leave && a.firedStages.arrived;
          if (!isCompleted) {
            const key = `${String(a.busStopCode).trim()}-${String(a.serviceNo).trim()}`;
@@ -113,12 +141,7 @@ const App: React.FC = () => {
 
       const schRes = await fetchScheduledAlertStatus(telegramId);
       const schAlerts = schRes.scheduledAlerts || [];
-      
-      console.info(`%c[Diagnostic] Polling Schedules: ${schAlerts.length} found.`, "color: #10b981; font-weight: bold;");
-      if (schAlerts.length > 0) console.table(schAlerts);
-
       setScheduledAlerts(schAlerts);
-      
     } catch (err) {
       console.error("Alert Sync Failed:", err);
     }
@@ -131,31 +154,23 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [telegramId, syncAlerts]);
 
-  // Unified registry to tell ServiceRow if an alert (Live or Scheduled) exists
   const unifiedAlerts = useMemo(() => {
     const map: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }> = {};
-    
-    // Add scheduled alerts first (lower priority if live exists)
     scheduledAlerts.forEach(s => {
       if (s.status === 'SCHEDULED') {
         const key = `${String(s.busStopCode).trim()}-${String(s.serviceNo).trim()}`;
         map[key] = { id: s.id, type: 'SCHEDULED' };
       }
     });
-
-    // Overwrite with live alerts if they are active
-    // FIX: Cast Object.entries to explicitly handle potential 'unknown' type inference for Record values
     (Object.entries(activeAlerts) as [string, string][]).forEach(([key, id]) => {
       map[key] = { id, type: 'LIVE' };
     });
-
     return map;
   }, [activeAlerts, scheduledAlerts]);
 
   const totalAlertsCount = useMemo(() => Object.keys(unifiedAlerts).length, [unifiedAlerts]);
 
-  // Explicitly type props to handle potential 'unknown' type issues with NavLink callback parameters
-  const navClasses = ({ isActive }: { isActive: boolean; isPending?: boolean; isTransitioning?: boolean }): string => 
+  const navClasses = ({ isActive }: { isActive: boolean }): string => 
     `w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
       isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-slate-300'
     }`;
@@ -167,7 +182,7 @@ const App: React.FC = () => {
         {globalError && (
           <div className="fixed top-20 left-4 right-4 z-[100] animate-in slide-in-from-top-10 duration-500">
             <div className="bg-rose-500/10 backdrop-blur-3xl border border-rose-500/50 p-4 rounded-2xl flex items-center gap-3 shadow-2xl shadow-rose-500/10">
-              <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/20">
+              <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -200,7 +215,7 @@ const App: React.FC = () => {
             </button>
             <NavLink 
               to="/alerts" 
-              className={({ isActive }: { isActive: boolean }) => 
+              className={({ isActive }) => 
                 `relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
               }
             >
@@ -213,7 +228,7 @@ const App: React.FC = () => {
             </NavLink>
             <NavLink 
               to="/settings" 
-              className={({ isActive }: { isActive: boolean }) => 
+              className={({ isActive }) => 
                 `w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'}`
               }
             >
@@ -225,11 +240,42 @@ const App: React.FC = () => {
         <main className="flex-1 pt-20 pb-32 overflow-y-auto no-scrollbar" key={refreshKey}>
           <div className="max-w-xl mx-auto px-4 w-full">
             <Routes>
-              <Route path="/" element={<FavoritesPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} unifiedAlerts={unifiedAlerts} onAlertChange={updateAlert} onSyncAlerts={syncAlerts} onError={handleError} />} />
-              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} unifiedAlerts={unifiedAlerts} onAlertChange={updateAlert} onSyncAlerts={syncAlerts} onError={handleError} />} />
+              <Route path="/" element={
+                <FavoritesPage 
+                  favorites={favorites} 
+                  pinnedServices={pinnedServices}
+                  commuteServices={commuteServices}
+                  toggleFavorite={toggleFavorite} 
+                  togglePinnedService={togglePinnedService} 
+                  telegramId={telegramId} 
+                  unifiedAlerts={unifiedAlerts} 
+                  onAlertChange={updateAlert} 
+                  onSyncAlerts={syncAlerts} 
+                  onError={handleError} 
+                  onUpdateCommute={updateCommuteService}
+                  autoHomeAlert={autoHomeAlert}
+                  setAutoHomeAlert={setAutoHomeAlert}
+                  autoBackAlert={autoBackAlert}
+                  setAutoBackAlert={setAutoBackAlert}
+                />
+              } />
+              <Route path="/search" element={<SearchPage favorites={favorites} pinnedServices={pinnedServices} commuteServices={commuteServices} toggleFavorite={toggleFavorite} togglePinnedService={togglePinnedService} telegramId={telegramId} unifiedAlerts={unifiedAlerts} onAlertChange={updateAlert} onSyncAlerts={syncAlerts} onError={handleError} onUpdateCommute={updateCommuteService} />} />
               <Route path="/planner" element={<JourneyPlanner />} />
               <Route path="/alerts" element={<AlertsPage activeAlerts={activeAlerts} scheduledAlerts={scheduledAlerts} telegramId={telegramId} onSyncAlerts={syncAlerts} totalCount={totalAlertsCount} />} />
-              <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} />} />
+              <Route path="/settings" element={<SettingsPage telegramId={telegramId} onUpdateId={setTelegramId} apiOnline={apiOnline} commuteServices={commuteServices} onUpdateCommute={updateCommuteService} />} />
+              <Route path="/commute/:mode" element={
+                <CommuteModePage 
+                  commuteServices={commuteServices}
+                  pinnedServices={pinnedServices} 
+                  telegramId={telegramId} 
+                  unifiedAlerts={unifiedAlerts} 
+                  onAlertChange={updateAlert} 
+                  onSyncAlerts={syncAlerts} 
+                  onError={handleError} 
+                  autoHomeAlert={autoHomeAlert}
+                  autoBackAlert={autoBackAlert}
+                />
+              } />
             </Routes>
           </div>
         </main>

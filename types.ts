@@ -51,6 +51,13 @@ export interface FavoriteService {
   serviceNo: string;
 }
 
+export interface CommuteService {
+  busStopCode: string;
+  busStopName: string;
+  serviceNo: string;
+  mode: 'home' | 'back';
+}
+
 export interface JourneyStep {
   type: "WALK" | "BUS" | "MRT" | "RAIL" | "SUBWAY" | "TRAM";
   service?: string;
