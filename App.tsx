@@ -45,8 +45,10 @@ const CommuteFab: React.FC<{
 
     try {
       if (isTracking) {
-        // Cancel all services associated with this stop/mode
-        let cancelledCount = 0;
+        // Aggressive Cleanup: Try to cancel all services in the config
+        let successCount = 0;
+        onLog(`Terminating ${mode} mission...`, 'info');
+        
         for (const s of services) {
           try {
             await cancelCommute({ 
@@ -55,16 +57,18 @@ const CommuteFab: React.FC<{
               stopCode: config.busStopCode,
               serviceNo: s 
             });
-            cancelledCount++;
-          } catch (e) { console.error(`Failed to cancel ${s}`, e); }
+            successCount++;
+          } catch (e) {
+            // Ignore 400s during multi-cancel as some services might not have been active
+            console.debug(`Clean-up skip for ${s}`);
+          }
         }
-        onLog(`Mission terminated (${cancelledCount} nodes)`, 'info');
+        onLog(`✅ Mission Cleared`, 'success');
       } else {
         let urgentCount = 0;
         let trackingCount = 0;
         let errors: string[] = [];
 
-        // Trigger individual requests for each bus service to match backend logic
         for (const s of services) {
           try {
             const res = await triggerCommute({
@@ -78,7 +82,7 @@ const CommuteFab: React.FC<{
             if (res?.status === 'URGENT') urgentCount++;
             else if (res?.status === 'TRACKING') trackingCount++;
           } catch (err: any) {
-            errors.push(`${s}: ${err.message || "Failed"}`);
+            errors.push(`${s}: ${err.message || "Bus not found"}`);
           }
         }
         
@@ -86,13 +90,14 @@ const CommuteFab: React.FC<{
           onLog(errors[0], 'error');
         } else {
           const statusMsg = [];
-          if (trackingCount > 0) statusMsg.push(`${trackingCount} Tracking`);
+          if (trackingCount > 0) statusMsg.push(`${trackingCount} Active`);
           if (urgentCount > 0) statusMsg.push(`${urgentCount} Urgent`);
-          onLog(`✅ Protocol: ${statusMsg.join(' / ')}`, urgentCount > 0 ? 'error' : 'success');
+          onLog(`🚀 Node Sync: ${statusMsg.join(' + ')}`, urgentCount > 0 ? 'error' : 'success');
         }
         
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
       }
+      // Immediate state refresh
       onRefresh();
     } catch (err: any) {
       onError(err);
@@ -102,18 +107,20 @@ const CommuteFab: React.FC<{
   };
 
   const getButtonColor = () => {
-    if (isWarningRed) return 'bg-rose-600 border-rose-400';
-    if (isWarningYellow) return 'bg-amber-500 border-amber-300';
-    if (isTracking) return 'bg-emerald-600 border-emerald-400';
-    return isHome ? 'bg-blue-600 border-blue-400' : 'bg-orange-600 border-orange-400';
+    if (isWarningRed) return 'bg-rose-600 border-rose-400 shadow-rose-900/40';
+    if (isWarningYellow) return 'bg-amber-500 border-amber-300 shadow-amber-900/40';
+    if (isTracking) return 'bg-emerald-600 border-emerald-400 shadow-emerald-900/40';
+    return isHome 
+      ? 'bg-blue-600 border-blue-400 shadow-blue-900/40' 
+      : 'bg-orange-600 border-orange-400 shadow-orange-900/40';
   };
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <button
         onClick={handleTap}
         disabled={loading}
-        className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_10px_40px_rgba(0,0,0,0.6)] border-2 z-20 active:scale-90 ${getButtonColor()} ${isTracking ? 'animate-pulse ring-4 ring-emerald-500/20' : ''}`}
+        className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-[0_15px_45px_rgba(0,0,0,0.7)] border-2 z-20 active:scale-90 ${getButtonColor()} ${isTracking ? 'animate-pulse ring-4 ring-emerald-500/30' : ''}`}
       >
         {loading ? (
           <Loader2 className="w-6 h-6 animate-spin text-white" />
@@ -126,12 +133,12 @@ const CommuteFab: React.FC<{
       
       <button
         onClick={(e) => { e.stopPropagation(); onConfigOpen(mode); }}
-        className="absolute -top-1 -right-1 w-7 h-7 bg-[#1a1a1e] border border-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-400 hover:rotate-90 transition-all shadow-lg active:scale-75 z-30"
+        className="absolute -top-1 -right-1 w-8 h-8 bg-[#1a1a1e] border border-white/20 rounded-full flex items-center justify-center text-slate-300 hover:text-indigo-400 hover:rotate-90 transition-all shadow-xl active:scale-75 z-30"
       >
-        <Settings className="w-4 h-4" />
+        <Settings className="w-4.5 h-4.5" />
       </button>
 
-      <span className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-widest whitespace-nowrap transition-colors duration-300 ${isTracking ? 'text-emerald-400' : 'text-slate-500'}`}>
+      <span className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[7px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-colors duration-300 ${isTracking ? 'text-emerald-400' : 'text-slate-500'}`}>
         {isTracking ? 'TRACKING' : (isHome ? 'HOME' : 'OFFICE')}
       </span>
     </div>
@@ -205,7 +212,7 @@ const AppContent: React.FC = () => {
       }];
     });
     setConfigMode(null);
-    handleLog(`Syncing Route ${configMode.toUpperCase()}`, 'info');
+    handleLog(`Route Config Updated`, 'success');
   };
 
   const syncAlerts = useCallback(async () => {
@@ -315,7 +322,7 @@ const AppContent: React.FC = () => {
               statusLog.type === 'success' ? 'text-emerald-400' :
               'text-indigo-400'
             }`} />
-            <p className="text-[13px] font-black uppercase tracking-tight text-white leading-tight truncate flex-1">{statusLog.msg}</p>
+            <p className="text-[12px] font-black uppercase tracking-tight text-white leading-tight truncate flex-1">{statusLog.msg}</p>
             <button onClick={() => setStatusLog(null)}><X className="w-5 h-5 text-white/30" /></button>
           </div>
         </div>
@@ -330,8 +337,8 @@ const AppContent: React.FC = () => {
                 {configMode === 'home' ? <Home className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
               </div>
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight">Node Mission</h3>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{configMode === 'home' ? 'Leave Home' : 'Back Home'} Config</p>
+                <h3 className="text-lg font-black uppercase tracking-tight">Mission Node</h3>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{configMode === 'home' ? 'Origin' : 'Return'} Config</p>
               </div>
             </div>
 
@@ -350,7 +357,7 @@ const AppContent: React.FC = () => {
                 <input 
                   type="text" value={modalData.serviceNos} 
                   onChange={e => setModalData({...modalData, serviceNos: e.target.value})} 
-                  placeholder="e.g. 190, 972, 700" 
+                  placeholder="e.g. 190, 972" 
                   className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white font-black tracking-widest text-lg focus:ring-1 focus:ring-indigo-500/50" 
                 />
               </div>
@@ -367,7 +374,7 @@ const AppContent: React.FC = () => {
                 onClick={handleSaveConfig} 
                 className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-xl shadow-indigo-600/20"
               >
-                SYNC COMMUTE
+                SYNC DATA
               </button>
             </div>
           </div>
@@ -381,7 +388,7 @@ const AppContent: React.FC = () => {
             <h1 className="text-xs font-black tracking-[0.2em] uppercase text-white">SG BUS LIVE</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 animate-pulse'}`} />
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Live' : 'Offline'}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{apiOnline ? 'Stream Live' : 'Offline'}</span>
             </div>
           </div>
         </div>
@@ -404,16 +411,43 @@ const AppContent: React.FC = () => {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[100] pb-12 px-8 pointer-events-none">
-        <div className="max-w-xl mx-auto flex flex-col items-center gap-12">
-          <div className="flex items-center gap-14 pointer-events-auto">
-            <CommuteFab mode="home" config={commuteServices.find(s => s.mode === 'home') || null} activeAlert={getFabAlert('home')} telegramId={telegramId} onConfigOpen={setConfigMode} onRefresh={syncAlerts} onLog={handleLog} onError={handleError} />
-            <CommuteFab mode="back" config={commuteServices.find(s => s.mode === 'back') || null} activeAlert={getFabAlert('back')} telegramId={telegramId} onConfigOpen={setConfigMode} onRefresh={syncAlerts} onLog={handleLog} onError={handleError} />
+      {/* Edge-Anchored Navigation and FABs */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100] pb-10 px-6 pointer-events-none">
+        <div className="max-w-2xl mx-auto relative flex flex-col items-center">
+          
+          {/* Dual Edge Commute FABs */}
+          <div className="w-full flex justify-between items-end mb-4 pointer-events-none">
+            <div className="pointer-events-auto ml-1 mb-2">
+              <CommuteFab 
+                mode="home" 
+                config={commuteServices.find(s => s.mode === 'home') || null} 
+                activeAlert={getFabAlert('home')} 
+                telegramId={telegramId} 
+                onConfigOpen={setConfigMode} 
+                onRefresh={syncAlerts} 
+                onLog={handleLog} 
+                onError={handleError} 
+              />
+            </div>
+            <div className="pointer-events-auto mr-1 mb-2">
+              <CommuteFab 
+                mode="back" 
+                config={commuteServices.find(s => s.mode === 'back') || null} 
+                activeAlert={getFabAlert('back')} 
+                telegramId={telegramId} 
+                onConfigOpen={setConfigMode} 
+                onRefresh={syncAlerts} 
+                onLog={handleLog} 
+                onError={handleError} 
+              />
+            </div>
           </div>
-          <nav className="bg-[#141417]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2.5 flex items-center gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto">
-            <NavLink to="/" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-110' : 'text-slate-500 hover:text-slate-300'}`}><LayoutGrid className="w-6 h-6" /></NavLink>
-            <NavLink to="/search" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-110' : 'text-slate-500 hover:text-slate-300'}`}><Search className="w-6 h-6" /></NavLink>
-            <NavLink to="/planner" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-110' : 'text-slate-500 hover:text-slate-300'}`}><Navigation className="w-6 h-6" /></NavLink>
+
+          {/* Central Nav Bar */}
+          <nav className="bg-[#141417]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center gap-2 shadow-[0_25px_60px_rgba(0,0,0,0.9)] pointer-events-auto">
+            <NavLink to="/" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><LayoutGrid className="w-6 h-6" /></NavLink>
+            <NavLink to="/search" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Search className="w-6 h-6" /></NavLink>
+            <NavLink to="/planner" className={({ isActive }) => `w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-slate-500 hover:text-slate-300'}`}><Navigation className="w-6 h-6" /></NavLink>
           </nav>
         </div>
       </div>
