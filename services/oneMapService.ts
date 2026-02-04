@@ -2,6 +2,7 @@
 import { JourneyResponse, JourneyStep } from '../types';
 
 const BASE_URL = "https://bus.pingthecloud.xyz";
+const BACKEND_API_KEY = "sgbus-jacky-2026";
 
 export interface JourneyParams {
   fromLat: number;
@@ -55,7 +56,8 @@ export const fetchBackendJourney = async (params: JourneyParams): Promise<Journe
   const url = `${BASE_URL}/journey-onemap?${query.toString()}`;
   
   const requestHeaders = {
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    'x-api-key': BACKEND_API_KEY
   };
 
   try {

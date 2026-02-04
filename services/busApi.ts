@@ -14,6 +14,7 @@ import {
 
 const BASE_URL = "https://bus.pingthecloud.xyz";
 const TIMEOUT_MS = 10000;
+const BACKEND_API_KEY = "sgbus-jacky-2026";
 
 export class ApiError extends Error {
   status: number;
@@ -37,6 +38,7 @@ const secureFetch = async (url: string, options: RequestInit = {}) => {
       cache: 'no-cache',
       headers: {
         'Accept': 'application/json',
+        'x-api-key': BACKEND_API_KEY,
         ...options.headers,
       },
     });
@@ -137,7 +139,10 @@ export const fetchScheduledAlertStatus = async (chatId: string): Promise<Schedul
 
 export const checkApiStatus = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${BASE_URL}/health`, { cache: 'no-cache' });
+    const response = await fetch(`${BASE_URL}/health`, { 
+      cache: 'no-cache',
+      headers: { 'x-api-key': BACKEND_API_KEY }
+    });
     return response.ok;
   } catch {
     return false;
