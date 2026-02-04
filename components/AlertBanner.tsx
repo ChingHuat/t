@@ -5,15 +5,15 @@ import { cancelAlert, cancelScheduledAlert } from '../services/busApi';
 import { ScheduledAlertStatus } from '../types';
 
 interface AlertBannerProps {
-  activeAlerts: Record<string, string>; // live alerts: "stopCode-serviceNo": "alertId"
+  activeAlerts: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }>;
   scheduledAlerts: ScheduledAlertStatus[];
   telegramId: string;
   onUpdate: () => void;
 }
 
 interface UnifiedAlert {
-  id: string; // Internal unique ID
-  apiId: string; // ID for API calls
+  id: string; // Internal unique UI ID
+  apiId: string; // Real ID for API
   stopCode: string;
   serviceNo: string;
   type: 'LIVE' | 'SCHEDULED_PENDING';
@@ -24,7 +24,6 @@ interface UnifiedAlert {
 const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts, telegramId, onUpdate }) => {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  // Non-negotiable Banner ON/OFF Logic
   const hasLiveAlert = useMemo(() => Object.keys(activeAlerts).length > 0, [activeAlerts]);
   const hasScheduledButNotActivated = useMemo(() => 
     scheduledAlerts.some(a => a.status === "SCHEDULED"), 
@@ -38,23 +37,22 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
 
     const list: UnifiedAlert[] = [];
 
-    // 1. Process Live Alerts (/alerts/status)
-    Object.entries(activeAlerts).forEach(([key, alertId]) => {
+    // Process Live Alerts
+    Object.entries(activeAlerts).forEach(([key, alertObj]) => {
       const lastDash = key.lastIndexOf('-');
       const stopCode = key.substring(0, lastDash);
       const serviceNo = key.substring(lastDash + 1);
       
       list.push({
-        id: `live-${alertId}`,
-        apiId: String(alertId),
+        id: `live-${alertObj.id}`,
+        apiId: alertObj.id,
         stopCode,
         serviceNo,
         type: 'LIVE',
       });
     });
 
-    // 2. Process Scheduled Alerts (/schedule-alerts/status)
-    // Rule: Take off if status is ACTIVE (handled by live list above)
+    // Process Scheduled Alerts
     scheduledAlerts.forEach(s => {
       if (s.status === 'SCHEDULED') {
         list.push({
@@ -72,7 +70,6 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
     return list.filter(alert => !processingIds.has(alert.id));
   }, [activeAlerts, scheduledAlerts, processingIds, bannerOn]);
 
-  // If both conditions are false, or if we filtered out everything (e.g. during processing), turn OFF
   if (!bannerOn || allAlerts.length === 0) return null;
 
   const handleStopAlert = async (alert: UnifiedAlert) => {
@@ -84,24 +81,15 @@ const AlertBanner: React.FC<AlertBannerProps> = ({ activeAlerts, scheduledAlerts
       } else {
         await cancelScheduledAlert({ chatId: telegramId, scheduledAlertId: alert.apiId });
       }
-      
       onUpdate();
-      
-      setTimeout(() => {
-        setProcessingIds(prev => {
-          const next = new Set(prev);
-          next.delete(alert.id);
-          return next;
-        });
-      }, 500);
-
-    } catch (err: any) {
+    } catch (err) {
+      console.error(`[Alert System] Deletion failed:`, err);
+    } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
         next.delete(alert.id);
         return next;
       });
-      console.error(`[Alert System] Deletion failed:`, err);
     }
   };
 

@@ -44,8 +44,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
            {/* Home Route List */}
            <div className="bg-[#131316] rounded-[2rem] border border-white/5 p-6">
               <div className="flex items-center gap-3 mb-6">
-                 <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center">
-                    <Home className="w-4 h-4 text-indigo-400" />
+                 <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <Home className="w-4 h-4 text-blue-400" />
                  </div>
                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Leave Home Mode</span>
               </div>
@@ -54,14 +54,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
                   <p className="text-[10px] font-bold text-slate-600 uppercase italic">No nodes assigned.</p>
                 ) : (
                   homeCommute.map(svc => (
-                    <div key={`${svc.busStopCode}-${svc.serviceNo}`} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-[12px] font-black text-white">{svc.serviceNo}</span>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{svc.busStopCode}</span>
+                    <div key={`${svc.busStopCode}`} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">STOP {svc.busStopCode}</span>
+                        <button onClick={() => onUpdateCommute(svc.busStopCode, '', undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button onClick={() => onUpdateCommute(svc.busStopCode, svc.serviceNo, undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex flex-wrap gap-1.5">
+                        {svc.serviceNos.split(',').map(s => (
+                          <span key={s} className="px-2 py-0.5 bg-indigo-600/10 border border-indigo-500/20 text-white font-black text-[11px] rounded-lg tabular-nums">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )}
@@ -71,8 +77,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
            {/* Back Route List */}
            <div className="bg-[#131316] rounded-[2rem] border border-white/5 p-6">
               <div className="flex items-center gap-3 mb-6">
-                 <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center">
-                    <Building2 className="w-4 h-4 text-emerald-400" />
+                 <div className="w-8 h-8 rounded-lg bg-orange-600/20 flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-orange-400" />
                  </div>
                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Back Home Mode</span>
               </div>
@@ -81,14 +87,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
                   <p className="text-[10px] font-bold text-slate-600 uppercase italic">No nodes assigned.</p>
                 ) : (
                   backCommute.map(svc => (
-                    <div key={`${svc.busStopCode}-${svc.serviceNo}`} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-[12px] font-black text-white">{svc.serviceNo}</span>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{svc.busStopCode}</span>
+                    <div key={`${svc.busStopCode}`} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">STOP {svc.busStopCode}</span>
+                        <button onClick={() => onUpdateCommute(svc.busStopCode, '', undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button onClick={() => onUpdateCommute(svc.busStopCode, svc.serviceNo, undefined)} className="text-slate-600 hover:text-rose-500 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex flex-wrap gap-1.5">
+                        {svc.serviceNos.split(',').map(s => (
+                          <span key={s} className="px-2 py-0.5 bg-indigo-600/10 border border-indigo-500/20 text-white font-black text-[11px] rounded-lg tabular-nums">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )}
@@ -96,7 +108,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
            </div>
         </div>
         <p className="text-[9px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight ml-1">
-          Assign services by clicking the 🏠 or 🏢 icons on any bus card.
+          Edit assignments via the floating gear icons or bus card shortcuts.
         </p>
       </div>
 
@@ -161,18 +173,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ telegramId, onUpdateId, api
              Open System Bot
            </button>
         </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-4 py-12">
-         <div className="w-16 h-px bg-white/20" />
-         <div className="flex flex-col items-center gap-1.5">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-[1em] text-center ml-[1em]">
-             SG BUS LIVE v1.1
-           </p>
-           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] text-center ml-[0.4em]">
-             By <span className="text-indigo-400/80">Jacky Lai</span>
-           </p>
-         </div>
       </div>
     </div>
   );

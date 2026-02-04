@@ -54,8 +54,9 @@ export interface FavoriteService {
 export interface CommuteService {
   busStopCode: string;
   busStopName: string;
-  serviceNo: string;
+  serviceNos: string; // Comma separated list of services
   mode: 'home' | 'back';
+  walkingTime?: number; // In minutes
 }
 
 export interface JourneyStep {

@@ -37,9 +37,10 @@ const StationCard: React.FC<StationCardProps> = ({
     if (!data?.services) return [];
     if (onlyShowPinned) {
       // In specific commute pages, we only show services that match the criteria
+      // Fixed: Replaced non-existent 'serviceNo' with 'serviceNos' and implemented split check for CSV values.
       return data.services.filter(s => 
         pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo) ||
-        commuteServices.some(c => c.busStopCode === stop.code && c.serviceNo === s.ServiceNo)
+        commuteServices.some(c => c.busStopCode === stop.code && c.serviceNos.split(',').includes(s.ServiceNo))
       );
     }
     return data.services;
@@ -145,7 +146,8 @@ const StationCard: React.FC<StationCardProps> = ({
                 onAlertChange={(aid) => onAlertChange(stop.code, s.ServiceNo, aid)}
                 onSyncAlerts={onSyncAlerts}
                 isPinned={pinnedServices.some(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)}
-                commuteMode={commuteServices.find(p => p.busStopCode === stop.code && p.serviceNo === s.ServiceNo)?.mode}
+                // Fixed: Corrected property access from 'serviceNo' to 'serviceNos' and added list containment check.
+                commuteMode={commuteServices.find(p => p.busStopCode === stop.code && p.serviceNos.split(',').includes(s.ServiceNo))?.mode}
                 onPinToggle={() => onPinToggle({ busStopCode: stop.code, busStopName: stop.name, serviceNo: s.ServiceNo })}
                 onUpdateCommute={(mode) => onUpdateCommute && onUpdateCommute(stop.code, s.ServiceNo, mode, stop.name)}
               />

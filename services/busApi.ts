@@ -56,6 +56,16 @@ const secureFetch = async (url: string, options: RequestInit = {}) => {
       } catch (e) {
         errorData = "Could not parse error body";
       }
+      
+      if (response.status === 404) {
+        throw new ApiError(`Resource not found (404).`, 404, errorData);
+      }
+      
+      if (response.status === 400) {
+        const detail = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
+        throw new ApiError(`Bad Request (400): ${detail}.`, 400, errorData);
+      }
+      
       throw new ApiError(`Request failed with status ${response.status}`, response.status, errorData);
     }
 
@@ -81,7 +91,7 @@ export const searchBusStops = async (query: string) => {
 };
 
 export const searchAddresses = async (query: string) => {
-  const response = await secureFetch(`${BASE_URL}/onemap/search?q=${encodeURIComponent(query)}`);
+  const response = await secureFetch(`${BASE_URL}/search?q=${encodeURIComponent(query)}`);
   return response.json();
 };
 
@@ -94,7 +104,12 @@ export const registerAlert = async (data: AlertRequest): Promise<AlertResponse> 
   const response = await secureFetch(`${BASE_URL}/register-alert`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      chatId: Number(data.chatId),
+      busStopCode: Number(data.busStopCode),
+      serviceNo: String(data.serviceNo),
+      threshold: Number(data.threshold)
+    }),
   });
   return response.json();
 };
@@ -103,7 +118,12 @@ export const scheduleAlert = async (data: ScheduleAlertRequest): Promise<Schedul
   const response = await secureFetch(`${BASE_URL}/schedule-alert`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      chatId: Number(data.chatId),
+      busStopCode: Number(data.busStopCode),
+      serviceNo: String(data.serviceNo),
+      targetTime: data.targetTime
+    }),
   });
   return response.json();
 };
@@ -112,7 +132,10 @@ export const cancelAlert = async (data: CancelAlertRequest): Promise<void> => {
   await secureFetch(`${BASE_URL}/alerts/cancel`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      chatId: Number(data.chatId),
+      alertId: data.alertId
+    }),
   });
 };
 
@@ -121,10 +144,50 @@ export const cancelScheduledAlert = async (data: CancelScheduledAlertRequest): P
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      chatId: String(data.chatId),
+      chatId: Number(data.chatId),
       scheduledAlertId: data.scheduledAlertId
     }),
   });
+};
+
+export const triggerCommute = async (data: { 
+  chatId: string; 
+  stopCode: string; 
+  serviceNo: string; 
+  walkTime: number; 
+  mode: 'home' | 'back' 
+}): Promise<any> => {
+  const response = await secureFetch(`${BASE_URL}/api/commute-trigger`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chatId: Number(data.chatId),
+      stopCode: Number(data.stopCode),
+      serviceNo: String(data.serviceNo),
+      walkTime: Number(data.walkTime),
+      mode: String(data.mode)
+    }),
+  });
+  return response.json();
+};
+
+export const cancelCommute = async (data: { 
+  chatId: string; 
+  stopCode: string;
+  serviceNo: string;
+  mode: 'home' | 'back' 
+}): Promise<any> => {
+  const response = await secureFetch(`${BASE_URL}/api/commute-cancel`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chatId: Number(data.chatId),
+      stopCode: Number(data.stopCode),
+      serviceNo: String(data.serviceNo),
+      mode: String(data.mode)
+    }),
+  });
+  return response.json();
 };
 
 export const fetchAlertStatus = async (chatId: string): Promise<AlertStatusResponse> => {

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Zap, ShieldCheck, Loader2, Home, Building2, Bell, BellOff } from 'lucide-react';
+import { ChevronLeft, Zap, ShieldCheck, Loader2, Home, Building2, Bell, BellOff, Footprints } from 'lucide-react';
 import { FavoriteService, FavoriteBusStop, CommuteService } from '../types';
 import { fetchBusArrival, registerAlert } from '../services/busApi';
 import StationCard from '../components/StationCard';
@@ -56,7 +56,8 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
 
       if (!isAutoEnabled) {
         activeModeServices.forEach(svc => {
-          results[`${svc.busStopCode}-${svc.serviceNo}`] = 'SKIPPED_TOGGLE';
+          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+          results[`${svc.busStopCode}-${svc.serviceNos}`] = 'SKIPPED_TOGGLE';
         });
         setAlertStatus(results);
         setInitializing(false);
@@ -64,9 +65,8 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
       }
 
       for (const svc of activeModeServices) {
-        const alertKey = `${svc.busStopCode}-${svc.serviceNo}`;
-        
-        // Skip if already has an alert
+        // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+        const alertKey = `${svc.busStopCode}-${svc.serviceNos}`;
         if (unifiedAlerts[alertKey]) {
           results[alertKey] = 'ALREADY_ACTIVE';
           continue;
@@ -74,7 +74,8 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
 
         try {
           const arrivalData = await fetchBusArrival(svc.busStopCode);
-          const bus = arrivalData.services.find(s => s.ServiceNo === svc.serviceNo);
+          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+          const bus = arrivalData.services.find(s => s.ServiceNo === svc.serviceNos);
           
           if (!bus || bus.eta === 'NA') {
              results[alertKey] = 'ERROR';
@@ -83,22 +84,27 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
 
           const eta = bus.eta === 'Arr' ? 0 : Number(bus.eta);
           
-          if (eta > 5) {
-            // Trigger alert with 5 min threshold
+          // DYNAMIC THRESHOLD: walkingTime + 2 min buffer
+          const walkTime = svc.walkingTime || 5;
+          const threshold = walkTime + 2;
+          
+          if (eta > threshold) {
             const res = await registerAlert({
               chatId: telegramId,
               busStopCode: svc.busStopCode,
-              serviceNo: svc.serviceNo,
-              threshold: 5
+              // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+              serviceNo: svc.serviceNos,
+              threshold: threshold
             });
-            onAlertChange(svc.busStopCode, svc.serviceNo, res.alertId);
+            // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+            onAlertChange(svc.busStopCode, svc.serviceNos, res.alertId);
             results[alertKey] = 'TRIGGERED';
           } else {
-            // Eta <= 5, skipped
             results[alertKey] = 'SKIPPED_CLOSE';
           }
         } catch (err) {
-          console.error(`Auto-alert failed for ${svc.serviceNo}`, err);
+          // Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition.
+          console.error(`Auto-alert failed for ${svc.serviceNos}`, err);
           results[alertKey] = 'ERROR';
         }
       }
@@ -109,7 +115,7 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
     };
 
     triggerSmartAlerts();
-  }, [mode, telegramId, isAutoEnabled]); // Re-run if toggle state changes while on page
+  }, [mode, telegramId, isAutoEnabled, activeModeServices, onAlertChange, onSyncAlerts, unifiedAlerts]);
 
   return (
     <div className="pb-32 animate-in fade-in duration-500">
@@ -150,17 +156,27 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
               <div className="space-y-3 w-full">
                 <div className={`flex items-start gap-3 p-4 bg-white/5 rounded-2xl border ${isAutoEnabled ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
                   {isAutoEnabled ? <Bell className="w-5 h-5 text-emerald-400 shrink-0" /> : <BellOff className="w-5 h-5 text-rose-400 shrink-0" />}
-                  <div>
+                  <div className="flex-1">
                     <p className="text-[11px] font-black text-white uppercase tracking-widest mb-1">
                       Auto-Alert System: {isAutoEnabled ? 'ENGAGED' : 'PAUSED'}
                     </p>
                     <p className="text-[11px] font-bold text-slate-400 leading-relaxed uppercase tracking-tight">
                       {isAutoEnabled 
-                        ? "Automatic alerts deployed for services > 5m ETA. Instant boarding required for close services."
+                        ? `Deployment synced to node telemetry. Alerts trigger at walkingTime + 2m threshold.`
                         : "Tracking live ETAs only. Automatic alerts are currently disabled via toggle."}
                     </p>
                   </div>
                 </div>
+
+                {activeModeServices.map(svc => (
+                  <div key={svc.serviceNos} className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+                    <Footprints className="w-4 h-4 text-slate-500" />
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                      {/* Fixed: Changed svc.serviceNo to svc.serviceNos to match CommuteService type definition. */}
+                      Node {svc.busStopCode} ({svc.serviceNos}) : {svc.walkingTime}m Walk Sync
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
          </div>
@@ -175,7 +191,7 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
               stop={stop}
               pinnedServices={pinnedServices}
               commuteServices={activeModeServices}
-              onPinToggle={() => {}} // Disabled in this specific view
+              onPinToggle={() => {}} 
               telegramId={telegramId}
               unifiedAlerts={unifiedAlerts}
               onAlertChange={onAlertChange}
@@ -189,14 +205,8 @@ const CommuteModePage: React.FC<CommuteModePageProps> = ({
         <div className="py-24 text-center bg-white/[0.01] border border-white/5 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center">
           <Bell className="w-8 h-8 text-slate-800 mb-5" />
           <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] leading-loose">
-            No Commute Assignments Found.<br/>Add them in Settings.
+            No Commute Assignments Found.<br/>Click the gear on the floating buttons.
           </p>
-          <button 
-            onClick={() => navigate('/settings')}
-            className="mt-6 px-6 py-3 bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest"
-          >
-            Assign Modes
-          </button>
         </div>
       )}
     </div>

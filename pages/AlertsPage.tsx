@@ -5,11 +5,11 @@ import AlertBanner from '../components/AlertBanner';
 import { ScheduledAlertStatus } from '../types';
 
 interface AlertsPageProps {
-  activeAlerts: Record<string, string>;
+  activeAlerts: Record<string, { id: string, type: 'LIVE' | 'SCHEDULED' }>;
   scheduledAlerts: ScheduledAlertStatus[];
   telegramId: string;
   onSyncAlerts: () => void;
-  totalCount: number; // Use unified count from App.tsx
+  totalCount: number;
 }
 
 const AlertsPage: React.FC<AlertsPageProps> = ({ activeAlerts, scheduledAlerts, telegramId, onSyncAlerts, totalCount }) => {
