@@ -153,7 +153,7 @@ export const cancelScheduledAlert = async (data: CancelScheduledAlertRequest): P
 export const triggerCommute = async (data: { 
   chatId: string; 
   stopCode: string; 
-  serviceNo: string; 
+  serviceNo: string | string[]; 
   walkTime: number; 
   mode: 'home' | 'back' 
 }): Promise<any> => {
@@ -162,8 +162,8 @@ export const triggerCommute = async (data: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chatId: Number(data.chatId),
-      stopCode: Number(data.stopCode),
-      serviceNo: String(data.serviceNo),
+      stopCode: String(data.stopCode),
+      serviceNo: data.serviceNo,
       walkTime: Number(data.walkTime),
       mode: String(data.mode)
     }),
@@ -182,7 +182,7 @@ export const cancelCommute = async (data: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chatId: Number(data.chatId),
-      stopCode: Number(data.stopCode),
+      stopCode: String(data.stopCode),
       serviceNo: String(data.serviceNo),
       mode: String(data.mode)
     }),
